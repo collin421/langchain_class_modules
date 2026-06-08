@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Part 8 · RAG 기초</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Gowun+Dodum&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f4efe6;--card:#fbf8f2;--ink:#2b2723;--sub:#6f6457;--accent:#c2410c;
+    --accent-soft:#e9d5c4;--line:#e2d9c9;--teal:#2f6b5e;--gold:#a8762f;
+    --serif:'Gowun Batang',serif;--sans:'Gowun Dodum',sans-serif;--maxw:760px;color-scheme:light only;
+  }
+  @media (prefers-color-scheme:dark){:root{--bg:#f4efe6;--card:#fbf8f2;--ink:#2b2723;}}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.85;font-size:17px;-webkit-text-size-adjust:100%;
+    background-image:radial-gradient(circle at 20% 0%,rgba(194,65,12,.04),transparent 40%),radial-gradient(circle at 90% 100%,rgba(47,107,94,.04),transparent 45%);}
+  #progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:100;transition:width .1s linear;}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 22px;}
+  header.hero{max-width:var(--maxw);margin:0 auto;padding:88px 22px 40px;}
+  .eyebrow{color:var(--accent);font-size:13px;letter-spacing:.22em;font-weight:700;text-transform:uppercase;}
+  h1{font-family:var(--serif);font-weight:700;font-size:clamp(30px,6vw,46px);line-height:1.25;margin:14px 0 18px;letter-spacing:-.01em;}
+  .lead{font-size:18px;color:var(--sub);max-width:62ch;}
+  .hero-meta{margin-top:26px;display:flex;gap:10px;flex-wrap:wrap;}
+  .chip{font-size:12.5px;font-weight:700;letter-spacing:.04em;padding:6px 13px;border-radius:999px;background:var(--accent-soft);color:#8a3408;}
+  .chip.t{background:#d8e8e3;color:#225349;}
+  section{padding:54px 0 30px;border-top:1px solid var(--line);}
+  section:first-of-type{border-top:none;}
+  .sec-no{font-family:var(--serif);font-size:14px;color:var(--accent);font-weight:700;letter-spacing:.1em;}
+  h2{font-family:var(--serif);font-weight:700;font-size:clamp(23px,4.4vw,31px);margin:6px 0 20px;line-height:1.3;}
+  p{margin:0 0 16px;}
+  .sub{color:var(--sub);}
+  strong{color:var(--accent);font-weight:700;}
+  code{font-family:'Gowun Dodum',monospace;background:#efe7d8;color:#8a3408;padding:1.5px 7px;border-radius:6px;font-size:.92em;}
+  pre{background:#2b2723;color:#f4efe6;border-radius:12px;padding:16px 18px;overflow-x:auto;font-size:14px;line-height:1.7;margin:16px 0;}
+  pre code{background:none;color:inherit;padding:0;}
+  pre .k{color:#e0935f;}pre .s{color:#9ec79a;}pre .c{color:#8b8175;font-style:italic;}
+  .note{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px;padding:14px 18px;margin:18px 0;font-size:15.5px;color:var(--sub);}
+  .note b{color:var(--accent);}
+  .summary{background:#efe7d8;border-radius:12px;padding:18px 20px;margin:22px 0 4px;}
+  .summary .h{font-family:var(--serif);font-weight:700;color:var(--accent);font-size:15px;letter-spacing:.05em;margin-bottom:8px;}
+  .summary ol{margin:0;padding-left:20px;}.summary li{margin:5px 0;font-size:15.5px;}
+  .widget{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;margin:26px 0;box-shadow:0 6px 22px rgba(80,60,30,.06);}
+  .widget .wlabel{display:inline-block;font-size:11.5px;font-weight:700;letter-spacing:.14em;color:#fff;background:var(--accent);padding:4px 11px;border-radius:999px;margin-bottom:16px;}
+  .wdesc{font-size:14.5px;margin-bottom:14px;color:var(--sub);}
+  .btn{border:none;background:var(--accent);color:#fff;font-family:var(--sans);font-weight:700;font-size:13.5px;padding:9px 18px;border-radius:9px;cursor:pointer;}
+  .btn.ghost{background:#fdfaf4;border:1px solid var(--line);color:var(--sub);}
+
+  /* W1: RAG flow */
+  .flow{display:flex;flex-direction:column;gap:0;}
+  .flow-stage{font-size:11px;font-weight:700;letter-spacing:.1em;color:var(--sub);margin:10px 0 4px;}
+  .flow-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+  .fnode{border:1.5px solid var(--line);border-radius:9px;padding:9px 11px;font-size:11.5px;background:#fff;flex:1;text-align:center;transition:.3s;min-width:64px;}
+  .fnode.lit{border-color:var(--teal);background:#d8e8e3;box-shadow:0 3px 10px rgba(47,107,94,.15);}
+  .fnode .fi{font-size:18px;}
+  .fnode .fn{font-weight:700;margin-top:2px;}
+  .farr{color:var(--gold);font-weight:700;flex:none;}
+  .flow-prep{background:#fbf3e6;border-radius:10px;padding:10px;margin-bottom:6px;}
+  .flow-q{background:#eef5f3;border-radius:10px;padding:10px;}
+  .flow-ctl{margin-top:14px;}
+
+  /* W2: chunking */
+  .ck-ctl{display:flex;gap:14px;margin-bottom:14px;flex-wrap:wrap;}
+  .ck-sl{flex:1;min-width:160px;}
+  .ck-sl label{font-size:12px;font-weight:700;color:var(--sub);display:flex;justify-content:space-between;}
+  .ck-sl input{width:100%;accent-color:var(--accent);}
+  .ck-doc{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px;line-height:1.5;font-size:12px;}
+  .ck-piece{display:inline;padding:2px 0;border-radius:3px;}
+  .ck-piece.c0{background:#e9d5c4;}.ck-piece.c1{background:#d8e8e3;}.ck-piece.c2{background:#f0e0b8;}.ck-piece.c3{background:#e6d3e0;}.ck-piece.c4{background:#d5e2c4;}
+  .ck-ov{background:repeating-linear-gradient(45deg,rgba(194,65,12,.25),rgba(194,65,12,.25) 3px,transparent 3px,transparent 6px);}
+  .ck-info{margin-top:10px;font-size:12.5px;color:var(--sub);text-align:center;}
+
+  /* W3: embedding space */
+  .emb-stage{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px;}
+  .emb-svg{width:100%;height:240px;display:block;}
+  .emb-q{margin-top:12px;display:flex;gap:6px;flex-wrap:wrap;}
+  .embq-btn{border:1.5px solid var(--line);background:#fdfaf4;border-radius:999px;padding:7px 13px;font-size:12.5px;cursor:pointer;font-family:var(--sans);transition:.15s;}
+  .embq-btn.on{border-color:var(--accent);background:var(--accent);color:#fff;}
+  .emb-result{margin-top:10px;font-size:13px;color:var(--sub);text-align:center;}
+
+  /* W4: keyword vs semantic */
+  .kv-q{text-align:center;margin-bottom:12px;}
+  .kv-q .pill{display:inline-block;background:var(--ink);color:#fff;padding:6px 15px;border-radius:999px;font-size:13px;}
+  .kv-cols{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .kv-col{border:1.5px solid var(--line);border-radius:10px;padding:12px;background:#fff;}
+  .kv-col.kw{border-color:var(--gold);}
+  .kv-col.sem{border-color:var(--teal);}
+  .kv-h{font-family:var(--serif);font-weight:700;font-size:13.5px;text-align:center;padding:5px;border-radius:7px;margin-bottom:8px;}
+  .kv-col.kw .kv-h{background:#fbf3e6;color:#8a5a1a;}
+  .kv-col.sem .kv-h{background:#d8e8e3;color:#225349;}
+  .kv-res{font-size:11.5px;min-height:50px;}
+  .kv-res .hit{background:#eef5f3;border-radius:6px;padding:5px 7px;margin:4px 0;}
+  .kv-res .miss{color:#9a3a14;font-weight:700;text-align:center;padding:14px 0;}
+
+  /* W5: rag chain assembly */
+  .rc-stage{background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px;}
+  .rc-split{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+  .rc-branch{border:1.5px solid var(--line);border-radius:9px;padding:11px;font-size:12px;background:#fdfaf4;transition:.3s;}
+  .rc-branch.lit{border-color:var(--teal);background:#d8e8e3;}
+  .rc-branch .bk{font-family:monospace;font-weight:700;font-size:11.5px;}
+  .rc-branch .bv{margin-top:5px;color:var(--sub);font-size:11px;min-height:30px;}
+  .rc-merge{text-align:center;color:var(--gold);font-size:16px;margin:4px 0;}
+  .rc-node{border:1.5px solid var(--line);border-radius:9px;padding:10px;font-size:12px;text-align:center;background:#fdfaf4;margin:5px 0;transition:.3s;}
+  .rc-node.lit{border-color:var(--accent);background:var(--accent-soft);}
+  .rc-out{background:#2b2723;color:#9ec79a;border-radius:9px;padding:11px 13px;font-size:12.5px;margin-top:8px;min-height:24px;}
+
+  footer{max-width:var(--maxw);margin:0 auto;padding:30px 22px 80px;color:var(--sub);font-size:14px;border-top:1px solid var(--line);}
+  .next-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin:20px 0 0;}
+  .next-card .nl{font-size:12px;letter-spacing:.14em;color:var(--accent);font-weight:700;}
+  .next-card .nt{font-family:var(--serif);font-weight:700;font-size:18px;margin-top:4px;}
+  .reveal{opacity:0;transform:translateY(18px);transition:opacity .6s ease,transform .6s ease;}
+  .reveal.in{opacity:1;transform:none;}
+  @media(max-width:480px){body{font-size:16px;}.kv-cols,.rc-split{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div id="progress"></div>
+
+<header class="hero">
+  <div class="eyebrow">LangChain 에이전트 마스터 · Part 8</div>
+  <h1>RAG 기초<br>우리 문서에서 찾아 답하기</h1>
+  <p class="lead">모델은 사내 매뉴얼·정책·최신 데이터를 모름. RAG는 질문이 오면 <strong>먼저 관련 문서를 찾아, 그것을 근거로 답하게</strong> 만드는 기술임. 오픈북 시험처럼 — 외운 것이 아니라 펴본 자료로 답함.</p>
+  <div class="hero-meta">
+    <span class="chip">🟡 중급 · 8/18</span>
+    <span class="chip t">RAG · 임베딩</span>
+    <span class="chip t">예상 45분</span>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- Section 1: RAG flow -->
+  <section class="reveal">
+    <div class="sec-no">8-1</div>
+    <h2>RAG란 — 찾아본 다음 답하기</h2>
+    <p>RAG(검색 증강 생성)는 <strong>① 질문과 관련된 문서를 검색하고 → ② 그것을 근거로 답을 생성</strong>하는 2단계 방식임. 모델이 모르는 사적·최신 지식의 빈틈을 메우고 환각을 줄임.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 전체 파이프라인</span>
+      <p class="wdesc">"흐름 보기"를 누르면 준비 단계(미리 한 번)와 질문 단계(매번)가 순서대로 점등됨.</p>
+      <div class="flow">
+        <div class="flow-stage">📦 준비 단계 (미리 한 번)</div>
+        <div class="flow-prep">
+          <div class="flow-row" id="w1prep">
+            <div class="fnode" data-i="0"><div class="fi">📄</div><div class="fn">문서</div></div><span class="farr">→</span>
+            <div class="fnode" data-i="1"><div class="fi">✂️</div><div class="fn">청킹</div></div><span class="farr">→</span>
+            <div class="fnode" data-i="2"><div class="fi">🔢</div><div class="fn">임베딩</div></div><span class="farr">→</span>
+            <div class="fnode" data-i="3"><div class="fi">🗄️</div><div class="fn">벡터스토어</div></div>
+          </div>
+        </div>
+        <div class="flow-stage">❓ 질문 단계 (매번)</div>
+        <div class="flow-q">
+          <div class="flow-row" id="w1q">
+            <div class="fnode" data-i="4"><div class="fi">🙋</div><div class="fn">질문</div></div><span class="farr">→</span>
+            <div class="fnode" data-i="5"><div class="fi">🔍</div><div class="fn">검색</div></div><span class="farr">→</span>
+            <div class="fnode" data-i="6"><div class="fi">📑</div><div class="fn">문서+질문</div></div><span class="farr">→</span>
+            <div class="fnode" data-i="7"><div class="fi">🤖</div><div class="fn">근거 답변</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="flow-ctl"><button class="btn" id="w1run">▶ 흐름 보기</button> <button class="btn ghost" id="w1reset">↻</button></div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;RAG는 모델 재학습 없이 문서만 갈아 끼워 지식을 바꿀 수 있음. 그래서 "최신 자료 반영"이 잦은 실무에서 표준처럼 쓰임. 핵심은 키워드가 아니라 <b>의미</b>로 찾는 것임.</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>RAG는 "관련 문서를 검색한 뒤 근거로 답하는" 2단계 방식임.</li>
+      <li>모델이 모르는 사적·최신 지식의 빈틈을 메우고 환각을 줄임.</li>
+      <li>준비(청킹→임베딩→저장)와 질문(검색→생성)으로 나뉨.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 2: chunking -->
+  <section class="reveal">
+    <div class="sec-no">8-2</div>
+    <h2>청킹 — 적당한 크기로 자르기</h2>
+    <p>문서가 너무 길면 다루기 어렵고, 너무 잘게 자르면 맥락이 끊김. 적당한 <strong>조각(chunk)</strong>으로 나눔. <code>chunk_overlap</code>은 포스트잇을 살짝 겹쳐 붙여 경계 문장이 잘려도 이웃에 남게 하는 장치임.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 청크 크기·겹침 조절</span>
+      <p class="wdesc">슬라이더로 조각 크기와 겹침을 바꾸면, 아래 문서가 어떻게 나뉘는지 색으로 보여줌(빗금 = 겹친 부분).</p>
+      <div class="ck-ctl">
+        <div class="ck-sl"><label>chunk_size <span id="w2sizeval">40</span>자</label><input type="range" id="w2size" min="20" max="80" value="40" step="10"></div>
+        <div class="ck-sl"><label>chunk_overlap <span id="w2ovval">10</span>자</label><input type="range" id="w2ov" min="0" max="20" value="10" step="5"></div>
+      </div>
+      <div class="ck-doc" id="w2doc"></div>
+      <div class="ck-info" id="w2info"></div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;실무에선 PDF·웹·CSV를 전용 로더로 불러옴(<code>PyPDFLoader</code> 등). <code>RecursiveCharacterTextSplitter</code>는 문단→문장→단어 순으로 자연스러운 경계를 우선해 자름.</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>RAG 첫 단계는 문서를 적당한 조각으로 자르는 것임.</li>
+      <li><code>chunk_size</code>는 크기, <code>chunk_overlap</code>은 경계 맥락 보존임.</li>
+      <li>자연스러운 경계(문단·문장)를 우선해 자름.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 3: embedding space -->
+  <section class="reveal">
+    <div class="sec-no">8-3</div>
+    <h2>임베딩 — 의미의 좌표</h2>
+    <p>임베딩은 텍스트를 <strong>숫자 벡터(좌표)</strong>로 바꿈. 핵심 성질은 하나 — <strong>의미가 비슷하면 가까운 좌표</strong>에 놓임. 도서관 사서가 책을 제목이 아니라 내용으로 분류해 비슷한 주제끼리 가까이 꽂는 것과 같음.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 의미 공간에서의 거리</span>
+      <p class="wdesc">질문을 누르면, 의미 공간(2D로 단순화)에서 그 질문이 어디에 놓이고 어떤 문서 조각이 가까운지 보여줌.</p>
+      <div class="emb-stage">
+        <svg class="emb-svg" id="w3svg" viewBox="0 0 400 240"></svg>
+      </div>
+      <div class="emb-q" id="w3qs">
+        <button class="embq-btn on" data-k="refund">"환불 받고 싶어요"</button>
+        <button class="embq-btn" data-k="size">"사이즈 안 맞아요"</button>
+        <button class="embq-btn" data-k="ship">"언제 배송돼요?"</button>
+      </div>
+      <div class="emb-result" id="w3res"></div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;저장과 검색에 <b>같은 임베딩 모델</b>을 써야 좌표계가 같아 비교됨. Gemini 정식 모델은 <code>gemini-embedding-001</code>임. 가까움은 보통 코사인 유사도(벡터 각도)로 잼.</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>임베딩은 텍스트를 의미의 좌표로 바꿈.</li>
+      <li>의미가 비슷하면 가까운 좌표 → 글자가 달라도 검색됨.</li>
+      <li>저장·검색에 같은 임베딩 모델을 써야 함.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 4: keyword vs semantic -->
+  <section class="reveal">
+    <div class="sec-no">8-4</div>
+    <h2>키워드 vs 의미 검색</h2>
+    <p>벡터스토어에 저장하고 retriever로 가까운 조각을 꺼냄. 그 힘은 <strong>키워드가 안 겹쳐도 의미로 찾는</strong> 데 있음.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 두 검색의 차이</span>
+      <p class="wdesc">'환불'이라는 단어가 없는 질문을 던져, 키워드 검색과 의미 검색(retriever)의 결과를 비교함.</p>
+      <div class="kv-q"><span class="pill">❓ "돈 언제 돌려받아요?" (‘환불’이란 단어 없음)</span></div>
+      <div class="kv-cols">
+        <div class="kv-col kw"><div class="kv-h">🔤 키워드 검색</div><div class="kv-res" id="w4kw"></div></div>
+        <div class="kv-col sem"><div class="kv-h">🧠 의미 검색 (RAG)</div><div class="kv-res" id="w4sem"></div></div>
+      </div>
+      <div style="margin-top:12px;text-align:center;"><button class="btn" id="w4run">▶ 두 검색 실행</button></div>
+    </div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>벡터스토어가 조각을 보관, retriever가 가까운 조각을 꺼냄.</li>
+      <li>키워드 검색은 글자 일치, 의미 검색은 뜻으로 찾음.</li>
+      <li>retriever도 Runnable이라 다음 절에서 체인에 끼움.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 5: rag chain -->
+  <section class="reveal">
+    <div class="sec-no">8-5</div>
+    <h2>RAG 체인 조립</h2>
+    <p>초급 Part 3의 <code>RunnablePassthrough</code>로 <strong>"질문은 그대로 + 동시에 문서 검색"</strong>해 둘 다 프롬프트에 넣음. RAG는 새 마법이 아니라, 배운 LCEL 도구에 retriever 하나를 끼운 것임.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 체인이 흐르는 과정</span>
+      <p class="wdesc">"실행"을 누르면 질문이 두 갈래(검색 / 그대로)로 나뉘어 프롬프트에 합쳐지고 답이 나오는 과정을 따라감.</p>
+      <div class="rc-stage">
+        <div style="text-align:center;margin-bottom:8px;font-size:12.5px;"><b>질문:</b> "반품은 며칠 안에?"</div>
+        <div class="rc-split">
+          <div class="rc-branch" data-i="0"><div class="bk">context: retriever</div><div class="bv" id="rc-ctx">문서 검색...</div></div>
+          <div class="rc-branch" data-i="1"><div class="bk">question: Passthrough()</div><div class="bv" id="rc-q">질문 그대로...</div></div>
+        </div>
+        <div class="rc-merge">↓ 합침</div>
+        <div class="rc-node" data-i="2" id="rc-prompt">prompt — {context}+{question} 채움</div>
+        <div class="rc-merge">↓</div>
+        <div class="rc-node" data-i="3" id="rc-model">model → StrOutputParser</div>
+        <div class="rc-out" id="rc-out"></div>
+        <button class="btn" id="w5run" style="margin-top:10px;">▶ 실행</button>
+      </div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;"문서 근거로만, 없으면 모른다고" 지시가 환각 방지의 핵심임. 이 RAG 체인을 <b>에이전트의 도구로 등록</b>하면, 에이전트가 필요할 때만 문서를 찾아보게 만들 수 있음(Part 9).</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>RAG 체인 = "질문 그대로(Passthrough) + 문서 검색(retriever)"을 프롬프트에.</li>
+      <li>초급 LCEL(파이프·병렬·통과·파서)에 retriever를 끼운 것임.</li>
+      <li>"근거로만, 없으면 모른다고" 지시가 환각을 막음.</li>
+    </ol></div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="next-card">
+    <div class="nl">NEXT · PART 9</div>
+    <div class="nt">create_agent 로 진짜 에이전트 만들기</div>
+    <p style="margin-top:8px;">도구(7)와 RAG(8)를 쥔 에이전트가 LangGraph 런타임 위에서 도구 호출 루프를 돌며 스스로 일하는 모습을 완성함. 중급의 핵심 결합임.</p>
+  </div>
+  <p style="margin-top:24px;">LangChain 에이전트 마스터 커리큘럼 · Part 8 / 18 · LangChain 1.0 기준</p>
+</footer>
+
+<script>
+const prog=document.getElementById('progress');
+addEventListener('scroll',()=>{const h=document.documentElement;prog.style.width=((h.scrollTop)/(h.scrollHeight-h.clientHeight)*100)+'%';});
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('in');}),{threshold:.12});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+
+/* ===== W1: RAG flow ===== */
+const w1nodes=()=>[...document.querySelectorAll('#w1prep .fnode, #w1q .fnode')];
+let w1t=null;
+function w1clear(){w1nodes().forEach(n=>n.classList.remove('lit'));}
+document.getElementById('w1run').addEventListener('click',()=>{
+  if(w1t)clearInterval(w1t);w1clear();
+  const nodes=w1nodes();let i=0;
+  w1t=setInterval(()=>{if(i>=nodes.length){clearInterval(w1t);return;}nodes[i].classList.add('lit');i++;},500);
+});
+document.getElementById('w1reset').addEventListener('click',()=>{if(w1t)clearInterval(w1t);w1clear();});
+
+/* ===== W2: chunking ===== */
+const w2text='리리마켓 반품 정책. 수령 후 7일 이내 반품 가능합니다. 교환은 14일 이내입니다. 환불은 3영업일 이내 처리됩니다.';
+const w2size=document.getElementById('w2size'),w2ov=document.getElementById('w2ov');
+function renderW2(){
+  const size=+w2size.value,ov=+w2ov.value;
+  document.getElementById('w2sizeval').textContent=size;
+  document.getElementById('w2ovval').textContent=ov;
+  // 청크 경계 계산 (단순 글자 기준 시뮬레이션)
+  const step=Math.max(size-ov,1);
+  let html='',n=0,starts=[];
+  for(let s=0;s<w2text.length;s+=step){starts.push(s);n++;if(s+size>=w2text.length)break;}
+  // 각 글자가 속한 청크들 계산 → 겹침 표시
+  const out=[];
+  for(let pos=0;pos<w2text.length;pos++){
+    const inChunks=starts.filter(s=>pos>=s&&pos<s+size);
+    const firstChunk=inChunks.length?starts.indexOf(inChunks[0]):0;
+    const overlapped=inChunks.length>1;
+    out.push(`<span class="ck-piece c${firstChunk%5}${overlapped?' ck-ov':''}">${w2text[pos]}</span>`);
+  }
+  document.getElementById('w2doc').innerHTML=out.join('');
+  document.getElementById('w2info').textContent=`→ 약 ${n}개 조각으로 분할 (색=조각 구분, 빗금=겹친 부분)`;
+}
+w2size.addEventListener('input',renderW2);w2ov.addEventListener('input',renderW2);renderW2();
+
+/* ===== W3: embedding space ===== */
+// 문서 조각 좌표 (의미 공간 2D 단순화)
+const w3docs=[
+  {t:'반품/환불 조항',x:90,y:70,cat:'refund'},
+  {t:'환불 영업일',x:120,y:95,cat:'refund'},
+  {t:'사이즈 교환',x:300,y:80,cat:'size'},
+  {t:'배송 출고 시간',x:310,y:180,cat:'ship'},
+  {t:'도서산간 배송',x:270,y:200,cat:'ship'},
+];
+const w3q={
+  refund:{x:105,y:55,label:'"환불 받고 싶어요"'},
+  size:{x:300,y:55,label:'"사이즈 안 맞아요"'},
+  ship:{x:300,y:210,label:'"언제 배송돼요?"'},
+};
+function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y);}
+function renderW3(k){
+  const q=w3q[k];
+  const ranked=w3docs.map(d=>({...d,dd:dist(q,d)})).sort((a,b)=>a.dd-b.dd);
+  const nearest=ranked.slice(0,2).map(d=>d.t);
+  let svg='';
+  // 가까운 2개 연결선
+  ranked.slice(0,2).forEach(d=>{svg+=`<line x1="${q.x}" y1="${q.y}" x2="${d.x}" y2="${d.y}" stroke="var(--teal)" stroke-width="1.5" stroke-dasharray="3 3"/>`;});
+  // 문서 점
+  w3docs.forEach(d=>{
+    const near=nearest.includes(d.t);
+    svg+=`<circle cx="${d.x}" cy="${d.y}" r="${near?7:5}" fill="${near?'var(--teal)':'#cdbfa8'}"/>`;
+    svg+=`<text x="${d.x}" y="${d.y-10}" font-size="9" text-anchor="middle" fill="${near?'#225349':'#9a8f7d'}">${d.t}</text>`;
+  });
+  // 질문 점
+  svg+=`<circle cx="${q.x}" cy="${q.y}" r="8" fill="var(--accent)"/>`;
+  svg+=`<text x="${q.x}" y="${q.y+20}" font-size="10" text-anchor="middle" fill="var(--accent)" font-weight="bold">질문</text>`;
+  document.getElementById('w3svg').innerHTML=svg;
+  document.getElementById('w3res').innerHTML=`<b>${q.label}</b> 와 의미가 가까운 조각: <b style="color:var(--teal)">${nearest.join(', ')}</b> → retriever가 이걸 가져옴`;
+}
+document.querySelectorAll('#w3qs .embq-btn').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('#w3qs .embq-btn').forEach(x=>x.classList.remove('on'));b.classList.add('on');renderW3(b.dataset.k);}));
+renderW3('refund');
+
+/* ===== W4: keyword vs semantic ===== */
+document.getElementById('w4run').addEventListener('click',()=>{
+  document.getElementById('w4kw').innerHTML='<div class="miss">❌ 못 찾음<br><span style="font-weight:400;font-size:10.5px">질문에 ‘환불/반품’ 단어가 없어<br>글자 일치 실패</span></div>';
+  setTimeout(()=>{
+    document.getElementById('w4sem').innerHTML='<div class="hit">✅ "환불은 3영업일 이내 처리됩니다"</div><div style="font-size:10.5px;color:var(--sub);text-align:center;margin-top:4px">‘돈 돌려받기’ ≈ ‘환불’ 의미로 매칭</div>';
+  },400);
+});
+document.getElementById('w4kw').innerHTML='<div style="color:var(--sub);text-align:center;padding:14px 0;font-size:11.5px">▶ 실행을 누르세요</div>';
+document.getElementById('w4sem').innerHTML='<div style="color:var(--sub);text-align:center;padding:14px 0;font-size:11.5px">▶ 실행을 누르세요</div>';
+
+/* ===== W5: rag chain ===== */
+const w5seq=[
+  {sel:['rc-ctx','rc-q'],ctx:'🔍 "수령 후 7일 이내 반품 가능합니다"',q:'반품은 며칠 안에?',branches:[0,1]},
+];
+document.getElementById('w5run').addEventListener('click',()=>{
+  const all=document.querySelectorAll('.rc-branch, .rc-node');
+  all.forEach(n=>n.classList.remove('lit'));
+  document.getElementById('rc-out').textContent='';
+  const steps=[
+    ()=>{document.querySelectorAll('.rc-branch').forEach(b=>b.classList.add('lit'));
+         document.getElementById('rc-ctx').textContent='🔍 "수령 후 7일 이내 반품 가능"';
+         document.getElementById('rc-q').textContent='"반품은 며칠 안에?" (그대로)';},
+    ()=>{document.querySelector('.rc-node[data-i="2"]').classList.add('lit');},
+    ()=>{document.querySelector('.rc-node[data-i="3"]').classList.add('lit');},
+    ()=>{document.getElementById('rc-out').textContent='✅ "상품 수령 후 7일 이내에 반품 신청이 가능합니다." (문서 근거)';},
+  ];
+  steps.forEach((fn,i)=>setTimeout(fn,i*650));
+});
+document.getElementById('rc-ctx').textContent='문서 검색...';
+document.getElementById('rc-q').textContent='질문 그대로...';
+</script>
+</body>
+</html>

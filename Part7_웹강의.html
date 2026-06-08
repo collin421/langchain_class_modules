@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Part 7 · 도구(Tool) 정의</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Gowun+Dodum&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f4efe6;--card:#fbf8f2;--ink:#2b2723;--sub:#6f6457;--accent:#c2410c;
+    --accent-soft:#e9d5c4;--line:#e2d9c9;--teal:#2f6b5e;--gold:#a8762f;
+    --serif:'Gowun Batang',serif;--sans:'Gowun Dodum',sans-serif;--maxw:760px;color-scheme:light only;
+  }
+  @media (prefers-color-scheme:dark){:root{--bg:#f4efe6;--card:#fbf8f2;--ink:#2b2723;}}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.85;font-size:17px;-webkit-text-size-adjust:100%;
+    background-image:radial-gradient(circle at 20% 0%,rgba(194,65,12,.04),transparent 40%),radial-gradient(circle at 90% 100%,rgba(47,107,94,.04),transparent 45%);}
+  #progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:100;transition:width .1s linear;}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 22px;}
+  header.hero{max-width:var(--maxw);margin:0 auto;padding:88px 22px 40px;}
+  .eyebrow{color:var(--accent);font-size:13px;letter-spacing:.22em;font-weight:700;text-transform:uppercase;}
+  h1{font-family:var(--serif);font-weight:700;font-size:clamp(30px,6vw,46px);line-height:1.25;margin:14px 0 18px;letter-spacing:-.01em;}
+  .lead{font-size:18px;color:var(--sub);max-width:62ch;}
+  .hero-meta{margin-top:26px;display:flex;gap:10px;flex-wrap:wrap;}
+  .chip{font-size:12.5px;font-weight:700;letter-spacing:.04em;padding:6px 13px;border-radius:999px;background:var(--accent-soft);color:#8a3408;}
+  .chip.t{background:#d8e8e3;color:#225349;}
+  section{padding:54px 0 30px;border-top:1px solid var(--line);}
+  section:first-of-type{border-top:none;}
+  .sec-no{font-family:var(--serif);font-size:14px;color:var(--accent);font-weight:700;letter-spacing:.1em;}
+  h2{font-family:var(--serif);font-weight:700;font-size:clamp(23px,4.4vw,31px);margin:6px 0 20px;line-height:1.3;}
+  p{margin:0 0 16px;}
+  .sub{color:var(--sub);}
+  strong{color:var(--accent);font-weight:700;}
+  code{font-family:'Gowun Dodum',monospace;background:#efe7d8;color:#8a3408;padding:1.5px 7px;border-radius:6px;font-size:.92em;}
+  pre{background:#2b2723;color:#f4efe6;border-radius:12px;padding:16px 18px;overflow-x:auto;font-size:14px;line-height:1.7;margin:16px 0;}
+  pre code{background:none;color:inherit;padding:0;}
+  pre .k{color:#e0935f;}pre .s{color:#9ec79a;}pre .c{color:#8b8175;font-style:italic;}pre .d{color:#9ec79a;}
+  .note{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px;padding:14px 18px;margin:18px 0;font-size:15.5px;color:var(--sub);}
+  .note b{color:var(--accent);}
+  .summary{background:#efe7d8;border-radius:12px;padding:18px 20px;margin:22px 0 4px;}
+  .summary .h{font-family:var(--serif);font-weight:700;color:var(--accent);font-size:15px;letter-spacing:.05em;margin-bottom:8px;}
+  .summary ol{margin:0;padding-left:20px;}.summary li{margin:5px 0;font-size:15.5px;}
+  .widget{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;margin:26px 0;box-shadow:0 6px 22px rgba(80,60,30,.06);}
+  .widget .wlabel{display:inline-block;font-size:11.5px;font-weight:700;letter-spacing:.14em;color:#fff;background:var(--accent);padding:4px 11px;border-radius:999px;margin-bottom:16px;}
+  .wdesc{font-size:14.5px;margin-bottom:14px;color:var(--sub);}
+  .btn{border:none;background:var(--accent);color:#fff;font-family:var(--sans);font-weight:700;font-size:13.5px;padding:9px 18px;border-radius:9px;cursor:pointer;}
+  .btn.ghost{background:#fdfaf4;border:1px solid var(--line);color:var(--sub);}
+
+  /* W1: function to tool extraction */
+  .ex-code{background:#2b2723;border-radius:10px;padding:14px;font-family:monospace;font-size:12.5px;color:#f4efe6;line-height:1.7;position:relative;}
+  .ex-code .hl{background:rgba(194,65,12,.25);border-radius:4px;padding:0 3px;cursor:pointer;transition:.2s;}
+  .ex-code .hl.name{background:rgba(168,118,47,.3);}
+  .ex-code .hl.doc{background:rgba(47,107,94,.3);}
+  .ex-code .hl.type{background:rgba(194,65,12,.3);}
+  .ex-arrow{text-align:center;color:var(--accent);font-size:18px;margin:8px 0;}
+  .ex-spec{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px;}
+  .ex-spec .row{display:flex;gap:10px;padding:7px 0;border-bottom:1px dashed var(--line);font-size:13px;}
+  .ex-spec .row:last-child{border:none;}
+  .ex-spec .key{flex:none;width:60px;font-weight:700;color:var(--sub);}
+  .ex-spec .row.active{background:#fbf3e6;border-radius:6px;padding-left:8px;}
+  .ex-hint{font-size:12.5px;color:var(--sub);text-align:center;margin-top:10px;}
+
+  /* W2: docstring lab (핵심) */
+  .dl-toggle{display:flex;gap:8px;margin-bottom:14px;}
+  .dlbtn{flex:1;border:1.5px solid var(--line);background:#fff;border-radius:9px;padding:11px;cursor:pointer;font-family:var(--sans);font-weight:700;font-size:13px;color:var(--sub);transition:.15s;}
+  .dlbtn.on.bad{border-color:#b4451f;background:#f3ddd2;color:#9a3a14;}
+  .dlbtn.on.good{border-color:var(--teal);background:#d8e8e3;color:#225349;}
+  .dl-doc{background:#2b2723;border-radius:10px;padding:13px 15px;font-family:monospace;font-size:12.5px;color:#9ec79a;margin-bottom:12px;}
+  .dl-doc .lbl{color:#8b8175;font-style:italic;}
+  .dl-q{font-size:13.5px;margin-bottom:10px;}
+  .dl-q .pill{display:inline-block;background:var(--ink);color:#fff;padding:5px 13px;border-radius:999px;font-size:12.5px;}
+  .dl-think{background:#fff;border:1px solid var(--line);border-radius:9px;padding:12px 14px;font-size:13px;min-height:60px;transition:.3s;}
+  .dl-think .head{font-size:11px;font-weight:700;color:var(--sub);margin-bottom:5px;}
+  .dl-result{margin-top:10px;font-size:13.5px;font-weight:700;padding:9px 12px;border-radius:8px;}
+  .dl-result.ok{background:#d8e8e3;color:#225349;}
+  .dl-result.no{background:#f3ddd2;color:#9a3a14;}
+
+  /* W3: multi tool routing */
+  .mt-q{margin-bottom:12px;}
+  .mtq-btn{border:1.5px solid var(--line);background:#fff;border-radius:999px;padding:8px 14px;font-size:12.5px;cursor:pointer;margin:3px;font-family:var(--sans);transition:.15s;}
+  .mtq-btn.on{border-color:var(--accent);background:var(--accent);color:#fff;}
+  .mt-tools{display:flex;gap:8px;margin:12px 0;}
+  .mt-tool{flex:1;border:1.5px solid var(--line);border-radius:10px;padding:11px;text-align:center;background:#fdfaf4;font-size:12px;transition:.3s;}
+  .mt-tool.picked{border-color:var(--teal);background:#d8e8e3;box-shadow:0 4px 12px rgba(47,107,94,.18);transform:translateY(-2px);}
+  .mt-tool .tn{font-family:monospace;font-weight:700;font-size:12px;}
+  .mt-tool .td{font-size:10.5px;color:var(--sub);margin-top:3px;}
+  .mt-out{background:#fff;border:1px solid var(--line);border-radius:9px;padding:11px 13px;font-size:13px;min-height:24px;}
+
+  /* W4: args schema */
+  .as-stage{background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px;}
+  .as-form{display:flex;flex-direction:column;gap:10px;}
+  .as-field{display:flex;align-items:center;gap:10px;}
+  .as-field .fn{font-family:monospace;font-size:12.5px;width:90px;flex:none;}
+  .as-field input{flex:1;border:1.5px solid var(--line);border-radius:8px;padding:8px 11px;font-family:var(--sans);font-size:13px;}
+  .as-field input.invalid{border-color:#b4451f;background:#fbeae3;}
+  .as-msg{font-size:12px;margin-top:8px;min-height:16px;}
+  .as-msg.ok{color:#225349;}.as-msg.err{color:#9a3a14;}
+
+  /* W5: tool design checklist */
+  .dc-card{background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:16px;}
+  .dc-tool{font-family:monospace;font-size:13px;background:#efe7d8;border-radius:8px;padding:10px 12px;margin-bottom:12px;}
+  .dc-checks{display:flex;flex-direction:column;gap:7px;}
+  .dc-check{display:flex;gap:9px;align-items:flex-start;font-size:13px;padding:7px 9px;border-radius:8px;background:#fdfaf4;border:1px solid var(--line);}
+  .dc-check .mk{flex:none;font-weight:700;}
+  .dc-check.pass{background:#eef5f3;border-color:#bcdcd3;}.dc-check.pass .mk{color:var(--teal);}
+  .dc-check.fail{background:#fbeae3;border-color:#e6c3b3;}.dc-check.fail .mk{color:#b4451f;}
+  .dc-toggle{display:flex;gap:8px;margin-bottom:14px;}
+  .dcbtn{flex:1;border:1.5px solid var(--line);background:#fff;border-radius:9px;padding:10px;cursor:pointer;font-family:var(--sans);font-weight:700;font-size:12.5px;color:var(--sub);transition:.15s;}
+  .dcbtn.on{border-color:var(--accent);background:var(--accent);color:#fff;}
+  .dc-score{margin-top:12px;text-align:center;font-size:13.5px;font-weight:700;padding:9px;border-radius:8px;}
+
+  footer{max-width:var(--maxw);margin:0 auto;padding:30px 22px 80px;color:var(--sub);font-size:14px;border-top:1px solid var(--line);}
+  .next-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin:20px 0 0;}
+  .next-card .nl{font-size:12px;letter-spacing:.14em;color:var(--accent);font-weight:700;}
+  .next-card .nt{font-family:var(--serif);font-weight:700;font-size:18px;margin-top:4px;}
+  .reveal{opacity:0;transform:translateY(18px);transition:opacity .6s ease,transform .6s ease;}
+  .reveal.in{opacity:1;transform:none;}
+  @media(max-width:480px){body{font-size:16px;}.mt-tools{flex-direction:column;}}
+</style>
+</head>
+<body>
+<div id="progress"></div>
+
+<header class="hero">
+  <div class="eyebrow">LangChain 에이전트 마스터 · Part 7</div>
+  <h1>도구(Tool) 정의</h1>
+  <p class="lead">에이전트의 힘은 도구에서 나옴. 도구가 없으면 판단만 할 뿐 행동을 못 함. 핵심은 놀랍도록 단순함 — <strong>함수의 이름·docstring·타입 힌트가 그대로 모델에게 주는 사용 설명서가 됨.</strong></p>
+  <div class="hero-meta">
+    <span class="chip">🟡 중급 · 7/18</span>
+    <span class="chip t">@tool</span>
+    <span class="chip t">예상 40분</span>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- Section 1: function → tool -->
+  <section class="reveal">
+    <div class="sec-no">7-1 · 7-2</div>
+    <h2>함수를 도구로 — @tool</h2>
+    <p>모델(LLM)은 뛰어난 두뇌지만 몸이 없음 — 직접 검색하거나 계산할 수 없음. <strong>도구는 그 두뇌에 다는 손과 발</strong>임. 평범한 함수 위에 <code>@tool</code> 한 줄을 붙이면 도구가 됨.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 함수에서 명세가 추출되는 과정</span>
+      <p class="wdesc">코드의 하이라이트된 부분을 누르면, 그것이 모델에게 전달되는 명세의 어디로 가는지 보여줌.</p>
+      <div class="ex-code">
+<span class="hl type" data-k="dec">@tool</span><br>
+<span style="color:#e0935f">def</span> <span class="hl name" data-k="name">get_stock</span>(<span class="hl type" data-k="arg">product: str</span>) -&gt; str:<br>
+&nbsp;&nbsp;<span class="hl doc" data-k="doc">"""상품명을 받아 현재 재고 수량을 돌려준다."""</span><br>
+&nbsp;&nbsp;<span style="color:#8b8175"># ... 내부 코드 (모델은 보지 않음)</span>
+      </div>
+      <div class="ex-arrow">↓ @tool 이 자동 추출</div>
+      <div class="ex-spec" id="w1spec">
+        <div class="row" data-k="name"><span class="key">name</span><span>get_stock</span></div>
+        <div class="row" data-k="doc"><span class="key">설명</span><span>상품명을 받아 현재 재고 수량을 돌려준다.</span></div>
+        <div class="row" data-k="arg"><span class="key">입력</span><span>product (str)</span></div>
+      </div>
+      <div class="ex-hint" id="w1hint">위 코드의 색칠된 부분을 눌러보세요.</div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;모델은 함수 <b>내부 코드를 보지 않음</b>. 오직 이름·설명·입력 명세만 봄. 반환값은 모델이 읽어야 하니 보통 문자열로 둠.</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>도구는 모델(두뇌)에 다는 손과 발임.</li>
+      <li><code>@tool</code> 한 줄이 함수를 도구로 만듦.</li>
+      <li>이름·docstring·타입이 자동 추출돼 모델용 명세가 됨.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 2: docstring lab (핵심) -->
+  <section class="reveal">
+    <div class="sec-no">7-3 · 핵심</div>
+    <h2>docstring이 도구 선택을 좌우한다</h2>
+    <p>이 파트에서 가장 중요한 사실 — <strong>모델은 docstring만 읽고 도구를 고름.</strong> docstring은 공구함에 붙은 라벨임. 라벨이 명확하면 제대로, 모호하면 엉뚱한 공구를 집음.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 같은 함수, 다른 docstring</span>
+      <p class="wdesc">내부 코드는 동일한 환율 도구임. docstring만 바꿔, 모델이 "1달러는 몇 원?" 질문에 이 도구를 고르는지 봄.</p>
+      <div class="dl-toggle" id="w2tog">
+        <button class="dlbtn on bad" data-k="bad">❌ 나쁜 docstring</button>
+        <button class="dlbtn good" data-k="good">✅ 좋은 docstring</button>
+      </div>
+      <div class="dl-doc" id="w2doc"></div>
+      <div class="dl-q"><span class="pill">❓ 사용자: "1달러는 몇 원이야?"</span></div>
+      <div class="dl-think" id="w2think"></div>
+      <div class="dl-result" id="w2result"></div>
+      <div style="margin-top:12px;"><button class="btn" id="w2run">▶ 모델 판단 보기</button></div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;docstring에 "<b>언제</b> 쓰는지"를 적는 것이 특히 강력함. "환율을 조회한다"보다 "해외 가격을 원화로 환산할 때 사용한다"가 모델 판단을 크게 도움. docstring은 모델에게 보내는 프롬프트의 일부임.</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>모델은 docstring·시그니처만 보고 도구를 고름(내부 코드 아님).</li>
+      <li>"무엇을·언제" 쓰는지 명확히 적는 것이 핵심임.</li>
+      <li>도구 오작동의 1순위 원인은 부실한 docstring임.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 3: routing -->
+  <section class="reveal">
+    <div class="sec-no">선택의 원리</div>
+    <h2>여러 도구 중 올바른 것 고르기</h2>
+    <p>도구가 여럿이면 모델은 각 docstring을 보고 질문에 맞는 것을 고름. 질문을 바꿔가며 모델이 어떤 도구를 집는지 봄.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 질문 → 도구 라우팅</span>
+      <p class="wdesc">질문을 눌러, 모델이 세 도구 중 무엇을 고르는지 관찰함.</p>
+      <div class="mt-q" id="w3qs">
+        <button class="mtq-btn on" data-k="stock">베이지 니트 재고 알려줘</button>
+        <button class="mtq-btn" data-k="rate">50달러는 원화로 얼마야?</button>
+        <button class="mtq-btn" data-k="calc">12000원짜리 3개 합계는?</button>
+        <button class="mtq-btn" data-k="none">안녕? 반가워!</button>
+      </div>
+      <div class="mt-tools" id="w3tools">
+        <div class="mt-tool" data-k="stock"><div class="tn">get_stock</div><div class="td">재고 조회</div></div>
+        <div class="mt-tool" data-k="rate"><div class="tn">get_exchange_rate</div><div class="td">환율 조회</div></div>
+        <div class="mt-tool" data-k="calc"><div class="tn">calculator</div><div class="td">계산</div></div>
+      </div>
+      <div class="mt-out" id="w3out"></div>
+    </div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>도구가 여럿이면 모델이 docstring을 보고 상황에 맞게 고름.</li>
+      <li>도구가 필요 없으면 아무것도 안 고르고 바로 답함.</li>
+      <li>도구 설명이 겹치거나 모호하면 잘못 고름.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 4: args schema -->
+  <section class="reveal">
+    <div class="sec-no">7-4</div>
+    <h2>args_schema — 입력 구조를 정밀하게</h2>
+    <p>인수·타입 힌트도 명세의 일부임. 복잡하거나 검증이 필요하면 Pydantic으로 입력 스키마를 정의함(<code>args_schema</code>). 인수 설명·제약(<code>gt=0</code> 등)까지 모델에 전달됨.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 입력 검증 체험</span>
+      <p class="wdesc"><code>search_products(category: str, max_price: int &gt; 0)</code>. 값을 넣어 스키마 검증이 어떻게 작동하는지 봄.</p>
+      <div class="as-stage">
+        <div class="as-form">
+          <div class="as-field"><span class="fn">category</span><input id="w4cat" value="니트" placeholder="텍스트"></div>
+          <div class="as-field"><span class="fn">max_price</span><input id="w4price" value="60000" placeholder="0보다 큰 정수"></div>
+        </div>
+        <div class="as-msg" id="w4msg"></div>
+      </div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;인수가 1~2개로 단순하면 타입 힌트 + docstring Args로 충분함. 인수가 많거나 검증(범위·필수)이 필요하면 <code>args_schema</code>(Pydantic)를 씀 — Part 4 구조화 출력과 같은 발상임.</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>인수·타입 힌트도 모델에 전달되는 명세임.</li>
+      <li>단순하면 타입 힌트+Args, 복잡하면 <code>args_schema</code>.</li>
+      <li>설명·제약을 명확히 하면 호출 형식 오류가 줄어듦.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 5: design checklist -->
+  <section class="reveal">
+    <div class="sec-no">7-5</div>
+    <h2>좋은 도구 설계 — 헛돌지 않게</h2>
+    <p>에이전트가 헛도는(엉뚱한 호출·무한 반복) 원인의 다수는 <strong>도구 설계 문제</strong>임. 두 도구를 체크리스트로 진단해봄.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 도구 설계 진단</span>
+      <div class="dc-toggle" id="w5tog">
+        <button class="dcbtn on" data-k="bad">do_everything (만능 도구)</button>
+        <button class="dcbtn" data-k="good">get_stock (단일 기능)</button>
+      </div>
+      <div class="dc-card">
+        <div class="dc-tool" id="w5tool"></div>
+        <div class="dc-checks" id="w5checks"></div>
+        <div class="dc-score" id="w5score"></div>
+      </div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;도구가 많아지면(10개+) 모델이 고르기 어려워짐. 그땐 묶거나, 단계를 나누거나, 여러 전문 에이전트로 분리함(멀티에이전트·Part 15). 되돌릴 수 없는 행동(삭제·발송·결제)은 human-in-the-loop(Part 14)로 보호함.</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>좋은 도구는 단일 기능·명확한 이름·'언제' 명시·친화적 반환값임.</li>
+      <li>에이전트가 헛도는 원인의 다수는 도구 설계 문제임.</li>
+      <li>도구는 적고 명확하게 — 많아지면 분리·멀티에이전트를 고려함.</li>
+    </ol></div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="next-card">
+    <div class="nl">NEXT · PART 8</div>
+    <div class="nt">RAG 기초 — 우리 문서에서 찾아 답하기</div>
+    <p style="margin-top:8px;">가장 강력한 도구는 "우리 문서에서 찾아 답하는" 능력임. 문서 로더 → 청킹 → 임베딩 → 벡터스토어 → retriever로 이어지는, 에이전트에게 지식을 주는 파이프라인을 배움.</p>
+  </div>
+  <p style="margin-top:24px;">LangChain 에이전트 마스터 커리큘럼 · Part 7 / 18 · LangChain 1.0 기준</p>
+</footer>
+
+<script>
+const prog=document.getElementById('progress');
+addEventListener('scroll',()=>{const h=document.documentElement;prog.style.width=((h.scrollTop)/(h.scrollHeight-h.clientHeight)*100)+'%';});
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('in');}),{threshold:.12});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+
+/* ===== W1: extraction ===== */
+const w1map={dec:null,name:'name',arg:'arg',doc:'doc'};
+document.querySelectorAll('.ex-code .hl').forEach(h=>h.addEventListener('click',()=>{
+  const k=w1map[h.dataset.k];
+  document.querySelectorAll('#w1spec .row').forEach(r=>r.classList.remove('active'));
+  const hint=document.getElementById('w1hint');
+  if(k){
+    document.querySelector(`#w1spec .row[data-k="${k}"]`).classList.add('active');
+    const msgs={name:'함수 이름 → 도구의 name. 모델이 용도를 짐작하는 첫 단서.',
+                arg:'인수+타입 힌트 → 입력 명세. 모델이 어떤 값을 넣을지 앎.',
+                doc:'docstring → 설명. 모델이 "언제 이 도구를 쓸지" 판단하는 핵심.'};
+    hint.textContent=msgs[k];
+  }else{
+    hint.textContent='@tool 데코레이터가 이 추출을 자동으로 해줌.';
+  }
+}));
+
+/* ===== W2: docstring lab ===== */
+const w2={
+  bad:{doc:'<span class="lbl"># docstring</span>\n"""처리한다."""',
+    think:{head:'모델의 속생각',txt:'🤔 "처리한다"...? 무엇을 처리하는 도구지? 환율 질문과 관련이 있는지 알 수 없다...'},
+    result:['no','❌ 도구를 못 고름 — 모델이 추측해 답하거나 "모르겠다"고 함']},
+  good:{doc:'<span class="lbl"># docstring</span>\n"""원화 대비 환율을 조회한다.\n해외 상품 가격을 원화로 환산하거나\n환율을 물을 때 사용한다."""',
+    think:{head:'모델의 속생각',txt:'🤔 "환율을 물을 때 사용한다"고 했네. 사용자가 환율을 묻고 있으니 → 이 도구를 쓰자!'},
+    result:['ok','✅ 정확히 get_exchange_rate 호출 → "1 USD = 1380원"']}
+};
+let w2cur='bad';
+function renderW2doc(){
+  const d=w2[w2cur];
+  document.getElementById('w2doc').innerHTML=d.doc.replace(/\n/g,'<br>');
+  document.getElementById('w2think').innerHTML='<div class="head">모델 판단 (▶ 버튼을 누르세요)</div>';
+  document.getElementById('w2result').className='dl-result';
+  document.getElementById('w2result').textContent='';
+}
+document.querySelectorAll('#w2tog .dlbtn').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('#w2tog .dlbtn').forEach(x=>x.classList.remove('on'));b.classList.add('on');w2cur=b.dataset.k;renderW2doc();}));
+document.getElementById('w2run').addEventListener('click',()=>{
+  const d=w2[w2cur];
+  document.getElementById('w2think').innerHTML=`<div class="head">${d.think.head}</div>${d.think.txt}`;
+  setTimeout(()=>{
+    const r=document.getElementById('w2result');r.className='dl-result '+d.result[0];r.textContent=d.result[1];
+  },500);
+});
+renderW2doc();
+
+/* ===== W3: routing ===== */
+const w3={
+  stock:{pick:'stock',out:'🔧 get_stock("베이지 니트") → "베이지 니트의 재고: 12"'},
+  rate:{pick:'rate',out:'🔧 get_exchange_rate("USD") → "50 USD = 69,000원"'},
+  calc:{pick:'calc',out:'🔧 calculator("12000 * 3") → "36000"'},
+  none:{pick:null,out:'💬 (도구 없이) "안녕하세요! 무엇을 도와드릴까요?" — 도구가 필요 없는 질문은 호출하지 않음'}
+};
+function renderW3(k){
+  const d=w3[k];
+  document.querySelectorAll('#w3tools .mt-tool').forEach(t=>t.classList.toggle('picked',t.dataset.k===d.pick));
+  document.getElementById('w3out').textContent=d.out;
+}
+document.querySelectorAll('#w3qs .mtq-btn').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('#w3qs .mtq-btn').forEach(x=>x.classList.remove('on'));b.classList.add('on');renderW3(b.dataset.k);}));
+renderW3('stock');
+
+/* ===== W4: args schema ===== */
+const w4cat=document.getElementById('w4cat'),w4price=document.getElementById('w4price');
+function renderW4(){
+  const cat=w4cat.value.trim();
+  const priceRaw=w4price.value.trim();
+  const msg=document.getElementById('w4msg');
+  const priceNum=Number(priceRaw);
+  w4cat.classList.remove('invalid');w4price.classList.remove('invalid');
+  if(!cat){w4cat.classList.add('invalid');msg.className='as-msg err';msg.textContent='❌ category: 비어 있음 (str 필요)';return;}
+  if(priceRaw===''||isNaN(priceNum)||!Number.isInteger(priceNum)){w4price.classList.add('invalid');msg.className='as-msg err';msg.textContent='❌ max_price: 정수(int)여야 함';return;}
+  if(priceNum<=0){w4price.classList.add('invalid');msg.className='as-msg err';msg.textContent='❌ max_price: gt=0 제약 위반 (0보다 커야 함)';return;}
+  msg.className='as-msg ok';msg.textContent=`✅ 검증 통과 → search_products(category="${cat}", max_price=${priceNum}) 호출 가능`;
+}
+w4cat.addEventListener('input',renderW4);w4price.addEventListener('input',renderW4);renderW4();
+
+/* ===== W5: design checklist ===== */
+const w5={
+  bad:{tool:'@tool\ndef do_everything(mode, value):\n  """재고·환율·계산을 모두 한다. mode로 고른다."""',
+    checks:[['fail','단일 기능?','여러 기능을 한 도구에 욱여넣음 → 모델이 mode를 뭘 줄지 혼란'],
+            ['fail',"이름이 곧 용도?","'do_everything'은 용도가 모호함"],
+            ['pass',"'언제' 명시?","일부 있으나 기능이 섞여 불명확"],
+            ['fail','반환값 명확?','mode마다 형식이 달라 예측 어려움']],
+    score:['⚠️ 나쁜 설계 — 모델이 헛돌 위험 높음','#f3ddd2','#9a3a14']},
+  good:{tool:'@tool\ndef get_stock(product: str) -> str:\n  """상품명으로 재고 수량을 조회한다.\n  재고가 있는지 물을 때 사용한다."""',
+    checks:[['pass','단일 기능?','재고 조회 한 가지만 함'],
+            ['pass',"이름이 곧 용도?","'get_stock' — 동사+명사로 명확"],
+            ['pass',"'언제' 명시?","'재고가 있는지 물을 때 사용한다' 명시"],
+            ['pass','반환값 명확?','"...의 재고: 12" 같은 명확한 문자열']],
+    score:['✅ 좋은 설계 — 모델이 정확히 고름','#d8e8e3','#225349']}
+};
+function renderW5(k){
+  const d=w5[k];
+  document.getElementById('w5tool').textContent=d.tool;
+  document.getElementById('w5checks').innerHTML=d.checks.map(([s,q,r])=>
+    `<div class="dc-check ${s}"><span class="mk">${s==='pass'?'✓':'✗'}</span><span><b>${q}</b> ${r}</span></div>`).join('');
+  const sc=document.getElementById('w5score');sc.textContent=d.score[0];sc.style.background=d.score[1];sc.style.color=d.score[2];
+}
+document.querySelectorAll('#w5tog .dcbtn').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('#w5tog .dcbtn').forEach(x=>x.classList.remove('on'));b.classList.add('on');renderW5(b.dataset.k);}));
+renderW5('bad');
+</script>
+</body>
+</html>

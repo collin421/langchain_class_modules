@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Part 4 · 출력 파서</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Gowun+Dodum&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f4efe6;--card:#fbf8f2;--ink:#2b2723;--sub:#6f6457;--accent:#c2410c;
+    --accent-soft:#e9d5c4;--line:#e2d9c9;--teal:#2f6b5e;--gold:#a8762f;
+    --serif:'Gowun Batang',serif;--sans:'Gowun Dodum',sans-serif;--maxw:760px;color-scheme:light only;
+  }
+  @media (prefers-color-scheme:dark){:root{--bg:#f4efe6;--card:#fbf8f2;--ink:#2b2723;}}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.85;font-size:17px;-webkit-text-size-adjust:100%;
+    background-image:radial-gradient(circle at 20% 0%,rgba(194,65,12,.04),transparent 40%),radial-gradient(circle at 90% 100%,rgba(47,107,94,.04),transparent 45%);}
+  #progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:100;transition:width .1s linear;}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 22px;}
+  header.hero{max-width:var(--maxw);margin:0 auto;padding:88px 22px 40px;}
+  .eyebrow{color:var(--accent);font-size:13px;letter-spacing:.22em;font-weight:700;text-transform:uppercase;}
+  h1{font-family:var(--serif);font-weight:700;font-size:clamp(30px,6vw,46px);line-height:1.25;margin:14px 0 18px;letter-spacing:-.01em;}
+  .lead{font-size:18px;color:var(--sub);max-width:62ch;}
+  .hero-meta{margin-top:26px;display:flex;gap:10px;flex-wrap:wrap;}
+  .chip{font-size:12.5px;font-weight:700;letter-spacing:.04em;padding:6px 13px;border-radius:999px;background:var(--accent-soft);color:#8a3408;}
+  .chip.t{background:#d8e8e3;color:#225349;}
+  section{padding:54px 0 30px;border-top:1px solid var(--line);}
+  section:first-of-type{border-top:none;}
+  .sec-no{font-family:var(--serif);font-size:14px;color:var(--accent);font-weight:700;letter-spacing:.1em;}
+  h2{font-family:var(--serif);font-weight:700;font-size:clamp(23px,4.4vw,31px);margin:6px 0 20px;line-height:1.3;}
+  p{margin:0 0 16px;}
+  .sub{color:var(--sub);}
+  strong{color:var(--accent);font-weight:700;}
+  code{font-family:'Gowun Dodum',monospace;background:#efe7d8;color:#8a3408;padding:1.5px 7px;border-radius:6px;font-size:.92em;}
+  pre{background:#2b2723;color:#f4efe6;border-radius:12px;padding:16px 18px;overflow-x:auto;font-size:14px;line-height:1.7;margin:16px 0;}
+  pre code{background:none;color:inherit;padding:0;}
+  pre .k{color:#e0935f;}pre .s{color:#9ec79a;}pre .c{color:#8b8175;font-style:italic;}pre .p{color:#e8c07d;font-weight:700;}
+  .note{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px;padding:14px 18px;margin:18px 0;font-size:15.5px;color:var(--sub);}
+  .note b{color:var(--accent);}
+  .summary{background:#efe7d8;border-radius:12px;padding:18px 20px;margin:22px 0 4px;}
+  .summary .h{font-family:var(--serif);font-weight:700;color:var(--accent);font-size:15px;letter-spacing:.05em;margin-bottom:8px;}
+  .summary ol{margin:0;padding-left:20px;}.summary li{margin:5px 0;font-size:15.5px;}
+  .widget{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;margin:26px 0;box-shadow:0 6px 22px rgba(80,60,30,.06);}
+  .widget .wlabel{display:inline-block;font-size:11.5px;font-weight:700;letter-spacing:.14em;color:#fff;background:var(--accent);padding:4px 11px;border-radius:999px;margin-bottom:16px;}
+  .wdesc{font-size:14.5px;margin-bottom:14px;color:var(--sub);}
+  .btn{border:none;background:var(--accent);color:#fff;font-family:var(--sans);font-weight:700;font-size:13.5px;padding:9px 18px;border-radius:9px;cursor:pointer;}
+  .btn.ghost{background:#fdfaf4;border:1px solid var(--line);color:var(--sub);}
+
+  /* W1: parser switcher */
+  .ps-tabs{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
+  .pstab{flex:1;min-width:120px;border:1.5px solid var(--line);background:#fff;border-radius:9px;padding:9px;cursor:pointer;text-align:center;font-family:var(--sans);font-weight:700;font-size:12.5px;color:var(--sub);transition:.15s;}
+  .pstab.on{border-color:var(--accent);background:var(--accent);color:#fff;}
+  .ps-chain{display:flex;align-items:center;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:14px;}
+  .ps-node{border:1.5px solid var(--line);border-radius:9px;padding:9px 12px;font-family:monospace;font-size:12px;background:#fdfaf4;}
+  .ps-node.parser{border-color:var(--teal);background:#d8e8e3;color:#225349;font-weight:700;transition:.3s;}
+  .ps-pipe{color:var(--gold);font-weight:700;}
+  .ps-io{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;}
+  .ps-box{background:#2b2723;border-radius:10px;padding:12px;font-family:monospace;font-size:12px;color:#9ec79a;min-height:80px;white-space:pre-wrap;}
+  .ps-box .lab{display:block;color:#8b8175;font-size:10px;margin-bottom:5px;}
+  .ps-conv{color:var(--accent);font-size:22px;text-align:center;}
+  .ps-type{margin-top:10px;text-align:center;font-size:13px;font-weight:700;padding:8px;border-radius:8px;background:#efe7d8;color:#7a5a2a;}
+
+  /* W2: AIMessage unwrap */
+  .uw{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px;text-align:center;}
+  .uw-box{display:inline-block;position:relative;border:2px solid var(--gold);border-radius:12px;padding:24px 30px;background:#fbf3e6;transition:.4s;}
+  .uw-box.open{border-color:var(--teal);background:#d8e8e3;}
+  .uw-box .lid{font-size:13px;color:var(--sub);font-weight:700;margin-bottom:8px;}
+  .uw-box .content{font-family:monospace;font-size:14px;color:var(--ink);}
+  .uw-box .wrap-label{position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:#fff;padding:0 8px;font-size:11px;font-weight:700;color:var(--gold);}
+  .uw-box.open .wrap-label{color:var(--teal);}
+  .uw-result{margin-top:14px;font-family:monospace;font-size:13px;min-height:20px;}
+
+  /* W3: format_instructions two-way */
+  .fi-flow{display:flex;flex-direction:column;gap:0;}
+  .fi-step{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin:5px 0;font-size:13px;opacity:.4;transition:.4s;}
+  .fi-step.lit{opacity:1;border-color:var(--accent);box-shadow:0 3px 10px rgba(194,65,12,.1);}
+  .fi-step .num{flex:none;width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font-weight:700;font-size:13px;}
+  .fi-step .dir{flex:none;font-size:16px;}
+  .fi-arrow{text-align:center;color:var(--gold);font-size:16px;line-height:1;}
+
+  /* W4: dict vs object */
+  .dvo-tabs{display:flex;gap:8px;margin-bottom:14px;}
+  .dvotab{flex:1;border:1.5px solid var(--line);background:#fff;border-radius:9px;padding:10px;cursor:pointer;text-align:center;font-family:var(--sans);font-weight:700;font-size:13px;color:var(--sub);transition:.15s;}
+  .dvotab.on{border-color:var(--accent);background:var(--accent);color:#fff;}
+  .dvo-stage{background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px;}
+  .dvo-code{font-family:monospace;font-size:12.5px;background:#2b2723;color:#9ec79a;border-radius:8px;padding:12px;white-space:pre-wrap;}
+  .dvo-rows{margin-top:12px;}
+  .dvo-row{display:flex;gap:8px;font-size:13px;padding:6px 0;border-bottom:1px dashed var(--line);}
+  .dvo-row .ck{flex:none;width:18px;}
+  .dvo-row.ok .ck{color:var(--teal);}.dvo-row.bad .ck{color:#b4451f;}
+
+  /* W5: chooser */
+  .ch-q{font-family:var(--serif);font-weight:700;font-size:15.5px;margin-bottom:12px;}
+  .ch-opts{display:flex;flex-direction:column;gap:8px;}
+  .ch-opt{border:1.5px solid var(--line);background:#fdfaf4;border-radius:10px;padding:11px 14px;cursor:pointer;font-size:13.5px;transition:.15s;}
+  .ch-opt.correct{border-color:var(--teal);background:#d8e8e3;color:#225349;font-weight:700;}
+  .ch-opt.wrong{border-color:#c98a6e;background:#f3ddd2;color:#9a3a14;}
+  .ch-fb{margin-top:12px;font-size:13.5px;min-height:18px;color:var(--sub);}
+  .ch-nav{margin-top:12px;text-align:right;}
+
+  footer{max-width:var(--maxw);margin:0 auto;padding:30px 22px 80px;color:var(--sub);font-size:14px;border-top:1px solid var(--line);}
+  .next-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin:20px 0 0;}
+  .next-card .nl{font-size:12px;letter-spacing:.14em;color:var(--accent);font-weight:700;}
+  .next-card .nt{font-family:var(--serif);font-weight:700;font-size:18px;margin-top:4px;}
+  .reveal{opacity:0;transform:translateY(18px);transition:opacity .6s ease,transform .6s ease;}
+  .reveal.in{opacity:1;transform:none;}
+  @media(max-width:480px){body{font-size:16px;}.ps-io{grid-template-columns:1fr;}.ps-conv{transform:rotate(90deg);}}
+</style>
+</head>
+<body>
+<div id="progress"></div>
+
+<header class="hero">
+  <div class="eyebrow">LangChain 에이전트 마스터 · Part 4</div>
+  <h1>출력 파서</h1>
+  <p class="lead">모델 출력은 아직 <code>AIMessage</code> 객체임. 깔끔한 문자열이나 구조화된 데이터(JSON·객체)로 받는 마지막 블록을 배움. 이걸로 <code>프롬프트 | 모델 | 파서</code> 3단 체인이 완성되고, 초급의 모든 부품이 갖춰짐.</p>
+  <div class="hero-meta">
+    <span class="chip">🟢 초급 · 4/5</span>
+    <span class="chip t">Output Parser</span>
+    <span class="chip t">예상 40분</span>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- Section 1: 왜 파서 + 파서 스위처 -->
+  <section class="reveal">
+    <div class="sec-no">4-1 · 4-2 · 4-3</div>
+    <h2>파서 — 출력의 마지막 공정</h2>
+    <p>모델 출력은 텍스트뿐이라, 프로그램이 쓰려면 누군가 <strong>파싱(해석)</strong>해야 함. 출력 파서는 그 텍스트를 원하는 형태(문자열·딕셔너리·객체)로 바꾸는 마지막 블록임. 손글씨 주문서를 전산 폼으로 옮기는 사무원과 같음.</p>
+    <p class="sub">파서도 Runnable이라 파이프 끝에 <code>| parser</code>로 붙이면 됨.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 파서를 바꿔 결과 타입 비교</span>
+      <p class="wdesc">같은 모델 출력에 어떤 파서를 붙이느냐에 따라 최종 결과의 타입이 어떻게 달라지는지 봄.</p>
+      <div class="ps-tabs" id="w1tabs">
+        <div class="pstab on" data-k="none">파서 없음</div>
+        <div class="pstab" data-k="str">StrOutputParser</div>
+        <div class="pstab" data-k="json">JsonOutputParser</div>
+      </div>
+      <div class="ps-chain">
+        <span class="ps-node">prompt</span><span class="ps-pipe">|</span>
+        <span class="ps-node">model</span><span class="ps-pipe">|</span>
+        <span class="ps-node parser" id="w1pnode">parser</span>
+      </div>
+      <div class="ps-io">
+        <div class="ps-box"><span class="lab">모델 출력 (항상 AIMessage)</span>AIMessage(
+  content='{"name":"베이지 니트",
+   "codi":["청바지","슬랙스"]}'
+)</div>
+        <div class="ps-conv">→</div>
+        <div class="ps-box" id="w1out"></div>
+      </div>
+      <div class="ps-type" id="w1type"></div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;파서는 둘로 나뉨 — 텍스트를 <b>다듬는</b> 파서(<code>StrOutputParser</code>)와 <b>구조화 데이터로 해석하는</b> 파서(<code>JsonOutputParser</code> 등). 후자가 모델을 "데이터 추출기"로 쓸 때 핵심임.</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>모델 출력은 AIMessage·텍스트라 가공이 필요함.</li>
+      <li>파서는 그 텍스트를 원하는 형태로 바꾸는 마지막 블록임.</li>
+      <li>파서도 Runnable이라 <code>| parser</code>로 이어 붙임.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 2: AIMessage unwrap -->
+  <section class="reveal">
+    <div class="sec-no">4-2</div>
+    <h2>StrOutputParser — 포장 벗기기</h2>
+    <p><code>StrOutputParser</code>는 <code>AIMessage</code>라는 포장을 벗기고 안의 <strong>본문 문자열만</strong> 손에 쥐여 줌. Part 3에서 <code>(lambda m: m.content)</code>로 하던 일을 정식 블록으로 만든 것임.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 포장 벗기기</span>
+      <p class="wdesc">상자(AIMessage)를 열어 알맹이(str)만 꺼내봄.</p>
+      <div class="uw">
+        <div class="uw-box" id="w2box">
+          <span class="wrap-label" id="w2label">AIMessage 포장</span>
+          <div class="lid" id="w2lid">📦 닫힌 상자</div>
+          <div class="content" id="w2content">content="포근함을 입다"</div>
+        </div>
+        <div class="uw-result" id="w2result"></div>
+        <div style="margin-top:14px;"><button class="btn" id="w2btn">📤 StrOutputParser 적용</button></div>
+      </div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;결과가 <code>str</code>이라 이후 텍스트 가공(해시태그 변환 등)을 자연스럽게 이을 수 있음. 스트리밍에서도 <code>chunk</code>가 바로 출력할 문자열이 됨.</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li><code>StrOutputParser</code>는 AIMessage에서 본문 문자열만 추출함.</li>
+      <li>결과 타입이 <code>str</code>이라 이후 가공이 쉬움.</li>
+      <li>사람에게 보여줄 답을 만드는 체인의 기본 마무리임.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 3: format_instructions two-way -->
+  <section class="reveal">
+    <div class="sec-no">4-3 · 4-5</div>
+    <h2>format_instructions — 앞뒤가 맞물린다</h2>
+    <p>구조화 파서가 작동하려면 모델이 먼저 그 형식대로 답해야 함. <code>get_format_instructions()</code>는 파서가 모델에게 "이 형식으로 답하라"고 주는 <strong>설명서</strong>임 — 택배 송장 양식 안내문과 같음.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 양방향 흐름 따라가기</span>
+      <p class="wdesc">"단계 진행"을 누르며, 파서가 어떻게 앞에서는 형식을 주문하고 뒤에서는 해석하는지 봄.</p>
+      <div class="fi-flow" id="w3flow">
+        <div class="fi-step" data-i="0"><span class="num">1</span><span class="dir">📤</span><span><b>파서 → 모델</b>: get_format_instructions()가 "JSON 스키마에 맞춰 답하라"는 지시문 생성 → 프롬프트에 끼움</span></div>
+        <div class="fi-arrow">↓</div>
+        <div class="fi-step" data-i="1"><span class="num">2</span><span class="dir">🤖</span><span><b>모델</b>: 지시대로 JSON 텍스트로 답함 → '{"name":"니트", "codi":[...]}'</span></div>
+        <div class="fi-arrow">↓</div>
+        <div class="fi-step" data-i="2"><span class="num">3</span><span class="dir">📥</span><span><b>모델 → 파서</b>: 파서가 그 JSON 텍스트를 해석해 파이썬 dict로 변환 ✅</span></div>
+      </div>
+      <div style="margin-top:14px;display:flex;gap:8px;">
+        <button class="btn" id="w3next">▶ 단계 진행</button>
+        <button class="btn ghost" id="w3reset">↻ 초기화</button>
+      </div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;<code>with_structured_output</code>을 쓰면 이 과정을 우리가 직접 챙기지 않아도 됨(모델 기능으로 내부 처리). 그래도 원리를 알면 형식이 깨질 때 디버깅이 쉬워짐.</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li><code>format_instructions</code>는 파서가 모델에게 주는 형식 설명서임.</li>
+      <li>프롬프트에 끼우면 모델이 형식을 맞추고 파서가 해석함(한 짝).</li>
+      <li>누락이 형식 깨짐의 1순위 원인임.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 4: dict vs object -->
+  <section class="reveal">
+    <div class="sec-no">4-4</div>
+    <h2>Pydantic · with_structured_output — 타입 보장</h2>
+    <p>JSON으로 받아도 "가격은 숫자여야 하는데 문자열로 왔다" 같은 문제가 생김. <strong>Pydantic 모델</strong>로 구조·타입을 클래스로 정의하고 <code>with_structured_output</code>을 쓰면, 검증된 객체가 바로 손에 들어옴 — 입국 신고서 양식처럼 형식이 틀리면 반려됨.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · dict vs 검증된 객체</span>
+      <p class="wdesc">두 방식이 어떻게 다른지 비교함. 같은 데이터라도 안전성이 다름.</p>
+      <div class="dvo-tabs" id="w4tabs">
+        <div class="dvotab on" data-k="dict">JsonOutputParser → dict</div>
+        <div class="dvotab" data-k="obj">with_structured_output → 객체</div>
+      </div>
+      <div class="dvo-stage">
+        <div class="dvo-code" id="w4code"></div>
+        <div class="dvo-rows" id="w4rows"></div>
+      </div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;<code>with_structured_output</code>은 모델의 구조화 출력 기능을 직접 써서 사후 파싱보다 안정적임. <code>Field(description=...)</code>을 성의 있게 적을수록 모델이 각 칸을 정확히 채움 — 설명이 곧 지시임.</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>Pydantic 모델로 출력의 구조·타입을 클래스로 정의함.</li>
+      <li><code>with_structured_output</code>이 구조를 강제하고 검증된 객체를 돌려줌(1.0 권장).</li>
+      <li>DB 저장·분기·API 연동 등 출력을 코드가 쓸 때 핵심임.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 5: chooser -->
+  <section class="reveal">
+    <div class="sec-no">자가 점검</div>
+    <h2>스스로 점검 — 어떤 파서를 쓸까</h2>
+    <p>상황에 맞는 파서를 고르는 감각이 핵심임. 아래 상황에서 가장 적절한 선택을 골라봄.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 파서 고르기</span>
+      <div class="ch-q" id="w5q"></div>
+      <div class="ch-opts" id="w5opts"></div>
+      <div class="ch-fb" id="w5fb"></div>
+      <div class="ch-nav"><button class="btn" id="w5next" disabled>다음 →</button></div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="next-card">
+    <div class="nl">NEXT · PART 5 (초급 졸업)</div>
+    <div class="nt">첫 미니 프로젝트</div>
+    <p style="margin-top:8px;">배운 모든 것(모델·프롬프트·LCEL·파서)을 합쳐 실제로 작동하는 첫 체인을 처음부터 끝까지 만듦. 초급의 졸업 작품이자 중급 "체인 vs 에이전트"로 가는 마지막 디딤돌임.</p>
+  </div>
+  <p style="margin-top:24px;">LangChain 에이전트 마스터 커리큘럼 · Part 4 / 18 · LangChain 1.0 기준</p>
+</footer>
+
+<script>
+const prog=document.getElementById('progress');
+addEventListener('scroll',()=>{const h=document.documentElement;prog.style.width=((h.scrollTop)/(h.scrollHeight-h.clientHeight)*100)+'%';});
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('in');}),{threshold:.12});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+
+/* ===== W1: parser switcher ===== */
+const w1={
+  none:{node:'(파서 없음)',out:'AIMessage(\n  content=\'{"name":...}\'\n)',type:'결과 타입: AIMessage — .content를 직접 꺼내야 함'},
+  str:{node:'StrOutputParser()',out:'\'{"name":"베이지 니트",\n  "codi":["청바지","슬랙스"]}\'',type:'결과 타입: str — 깔끔한 문자열 (단, JSON 모양이어도 그냥 글자)'},
+  json:{node:'JsonOutputParser()',out:'{\n  "name": "베이지 니트",\n  "codi": ["청바지", "슬랙스"]\n}',type:'결과 타입: dict — result["codi"]로 바로 접근 가능'}
+};
+function renderW1(k){
+  const d=w1[k];
+  document.getElementById('w1pnode').textContent=d.node;
+  document.getElementById('w1out').innerHTML='<span class="lab">파서 적용 후 결과</span>'+d.out;
+  document.getElementById('w1type').textContent=d.type;
+}
+document.querySelectorAll('#w1tabs .pstab').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('#w1tabs .pstab').forEach(x=>x.classList.remove('on'));t.classList.add('on');renderW1(t.dataset.k);}));
+renderW1('none');
+
+/* ===== W2: unwrap ===== */
+let w2open=false;
+document.getElementById('w2btn').addEventListener('click',()=>{
+  w2open=!w2open;
+  const box=document.getElementById('w2box');
+  if(w2open){
+    box.classList.add('open');
+    document.getElementById('w2label').textContent='벗겨낸 알맹이';
+    document.getElementById('w2lid').textContent='📂 열린 상자';
+    document.getElementById('w2content').textContent='"포근함을 입다"';
+    document.getElementById('w2result').innerHTML='→ 결과: <b style="color:var(--teal)">str</b> "포근함을 입다" ✅';
+    document.getElementById('w2btn').textContent='↻ 되돌리기';
+  }else{
+    box.classList.remove('open');
+    document.getElementById('w2label').textContent='AIMessage 포장';
+    document.getElementById('w2lid').textContent='📦 닫힌 상자';
+    document.getElementById('w2content').textContent='content="포근함을 입다"';
+    document.getElementById('w2result').textContent='';
+    document.getElementById('w2btn').textContent='📤 StrOutputParser 적용';
+  }
+});
+
+/* ===== W3: format_instructions ===== */
+let w3i=-1;
+function renderW3(){
+  document.querySelectorAll('#w3flow .fi-step').forEach((s,i)=>s.classList.toggle('lit',i<=w3i));
+}
+document.getElementById('w3next').addEventListener('click',()=>{
+  if(w3i<2){w3i++;renderW3();}
+  document.getElementById('w3next').textContent=w3i>=2?'✅ 완료':'▶ 단계 진행';
+});
+document.getElementById('w3reset').addEventListener('click',()=>{w3i=-1;renderW3();document.getElementById('w3next').textContent='▶ 단계 진행';});
+renderW3();
+
+/* ===== W4: dict vs object ===== */
+const w4={
+  dict:{code:'result = chain.invoke(...)   # JsonOutputParser\n# result 는 dict\nresult["name"]      # 키로 접근\nresult["price"]     # 오타나도 KeyError 로만 발견',
+    rows:[['ok','키로 접근: result["name"]'],['bad','타입 미보장: price가 "5만원"(str)로 와도 통과'],['bad','오타는 실행 중 KeyError로만 발견'],['bad','IDE 자동완성 ✗']]},
+  obj:{code:'result = model.with_structured_output(Product).invoke(...)\n# result 는 Product 객체\nresult.name         # 점(.)으로 접근\nresult.price_range  # 타입 검증됨',
+    rows:[['ok','점 접근: result.name'],['ok','타입 보장: 정의한 타입과 다르면 반려'],['ok','잘못된 필드는 즉시 드러남'],['ok','IDE 자동완성 ✓']]}
+};
+function renderW4(k){
+  const d=w4[k];
+  document.getElementById('w4code').textContent=d.code;
+  document.getElementById('w4rows').innerHTML=d.rows.map(([s,t])=>
+    `<div class="dvo-row ${s}"><span class="ck">${s==='ok'?'✓':'✗'}</span><span>${t}</span></div>`).join('');
+}
+document.querySelectorAll('#w4tabs .dvotab').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('#w4tabs .dvotab').forEach(x=>x.classList.remove('on'));t.classList.add('on');renderW4(t.dataset.k);}));
+renderW4('dict');
+
+/* ===== W5: chooser quiz ===== */
+const w5=[
+  {q:'챗봇이 사용자에게 보여줄 답변 텍스트를 실시간으로 출력하려 한다.',
+   opts:[['StrOutputParser',true],['JsonOutputParser',false],['with_structured_output',false]],
+   fb:'정답은 StrOutputParser. 사람이 읽을 문자열이면 충분하고, 스트리밍에서 chunk가 바로 문자열이 됨.'},
+  {q:'고객 리뷰를 받아 감정(긍정/부정/중립)으로 분류하고, 그 값으로 코드가 분기 처리해야 한다.',
+   opts:[['StrOutputParser',false],['with_structured_output + Literal',true],['파서 없이 AIMessage 그대로',false]],
+   fb:'정답. 분기 판단엔 타입 보장이 중요하고, Literal로 값 범위를 못 박으면 셋 중 하나만 답하게 강제됨.'},
+  {q:'구조화 파서(JsonOutputParser)를 직접 쓰는데 모델이 자꾸 형식을 어긴다. 가장 먼저 확인할 것은?',
+   opts:[['temperature를 1로 올린다',false],['format_instructions를 프롬프트에 넣었는지 확인',true],['모델을 Pro로 바꾼다',false]],
+   fb:'정답. format_instructions 누락이 형식 깨짐의 1순위 원인임. (그리고 temperature는 오히려 0이 안정적)'},
+];
+let qi=0,answered=false;
+function renderW5(){
+  answered=false;const it=w5[qi];
+  document.getElementById('w5q').textContent=`Q${qi+1}. ${it.q}`;
+  document.getElementById('w5fb').textContent='';
+  document.getElementById('w5next').disabled=true;
+  document.getElementById('w5next').textContent=qi<w5.length-1?'다음 →':'처음부터 ↺';
+  document.getElementById('w5opts').innerHTML=it.opts.map((o,i)=>`<button class="ch-opt" data-i="${i}">${o[0]}</button>`).join('');
+  document.querySelectorAll('#w5opts .ch-opt').forEach(b=>b.addEventListener('click',()=>{
+    if(answered)return;answered=true;const i=+b.dataset.i;const ok=it.opts[i][1];
+    document.querySelectorAll('#w5opts .ch-opt').forEach((x,j)=>{if(it.opts[j][1])x.classList.add('correct');});
+    if(!ok)b.classList.add('wrong');
+    document.getElementById('w5fb').textContent=(ok?'✅ ':'💡 ')+it.fb;
+    document.getElementById('w5next').disabled=false;
+  }));
+}
+document.getElementById('w5next').addEventListener('click',()=>{qi=(qi+1)%w5.length;renderW5();});
+renderW5();
+</script>
+</body>
+</html>

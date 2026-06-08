@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Part 16 · 관측·평가 (LangSmith)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Gowun+Dodum&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f4efe6;--card:#fbf8f2;--ink:#2b2723;--sub:#6f6457;--accent:#c2410c;
+    --accent-soft:#e9d5c4;--line:#e2d9c9;--teal:#2f6b5e;--gold:#a8762f;
+    --serif:'Gowun Batang',serif;--sans:'Gowun Dodum',sans-serif;--maxw:760px;color-scheme:light only;
+  }
+  @media (prefers-color-scheme:dark){:root{--bg:#f4efe6;--card:#fbf8f2;--ink:#2b2723;}}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.85;font-size:17px;-webkit-text-size-adjust:100%;
+    background-image:radial-gradient(circle at 20% 0%,rgba(194,65,12,.04),transparent 40%),radial-gradient(circle at 90% 100%,rgba(47,107,94,.04),transparent 45%);}
+  #progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:100;transition:width .1s linear;}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 22px;}
+  header.hero{max-width:var(--maxw);margin:0 auto;padding:88px 22px 40px;}
+  .eyebrow{color:var(--accent);font-size:13px;letter-spacing:.22em;font-weight:700;text-transform:uppercase;}
+  h1{font-family:var(--serif);font-weight:700;font-size:clamp(30px,6vw,46px);line-height:1.25;margin:14px 0 18px;letter-spacing:-.01em;}
+  .lead{font-size:18px;color:var(--sub);max-width:62ch;}
+  .hero-meta{margin-top:26px;display:flex;gap:10px;flex-wrap:wrap;}
+  .chip{font-size:12.5px;font-weight:700;letter-spacing:.04em;padding:6px 13px;border-radius:999px;background:var(--accent-soft);color:#8a3408;}
+  .chip.t{background:#d8e8e3;color:#225349;}
+  section{padding:54px 0 30px;border-top:1px solid var(--line);}
+  section:first-of-type{border-top:none;}
+  .sec-no{font-family:var(--serif);font-size:14px;color:var(--accent);font-weight:700;letter-spacing:.1em;}
+  h2{font-family:var(--serif);font-weight:700;font-size:clamp(23px,4.4vw,31px);margin:6px 0 20px;line-height:1.3;}
+  p{margin:0 0 16px;}
+  .sub{color:var(--sub);}
+  strong{color:var(--accent);font-weight:700;}
+  code{font-family:'Gowun Dodum',monospace;background:#efe7d8;color:#8a3408;padding:1.5px 7px;border-radius:6px;font-size:.92em;}
+  pre{background:#2b2723;color:#f4efe6;border-radius:12px;padding:16px 18px;overflow-x:auto;font-size:13.5px;line-height:1.7;margin:16px 0;}
+  pre code{background:none;color:inherit;padding:0;}
+  pre .k{color:#e0935f;}pre .s{color:#9ec79a;}pre .c{color:#8b8175;font-style:italic;}
+  .note{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px;padding:14px 18px;margin:18px 0;font-size:15.5px;color:var(--sub);}
+  .note b{color:var(--accent);}
+  .summary{background:#efe7d8;border-radius:12px;padding:18px 20px;margin:22px 0 4px;}
+  .summary .h{font-family:var(--serif);font-weight:700;color:var(--accent);font-size:15px;letter-spacing:.05em;margin-bottom:8px;}
+  .summary ol{margin:0;padding-left:20px;}.summary li{margin:5px 0;font-size:15.5px;}
+  .widget{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;margin:26px 0;box-shadow:0 6px 22px rgba(80,60,30,.06);}
+  .widget .wlabel{display:inline-block;font-size:11.5px;font-weight:700;letter-spacing:.14em;color:#fff;background:var(--accent);padding:4px 11px;border-radius:999px;margin-bottom:16px;}
+  .wdesc{font-size:14.5px;margin-bottom:14px;color:var(--sub);}
+  .btn{border:none;background:var(--accent);color:#fff;font-family:var(--sans);font-weight:700;font-size:13.5px;padding:9px 18px;border-radius:9px;cursor:pointer;}
+  .btn.ghost{background:#fdfaf4;border:1px solid var(--line);color:var(--sub);}
+
+  /* W1: black box */
+  .bb-toggle{display:flex;gap:8px;margin-bottom:14px;}
+  .bbbtn{flex:1;border:1.5px solid var(--line);background:#fff;border-radius:9px;padding:10px;cursor:pointer;font-family:var(--sans);font-weight:700;font-size:12.5px;color:var(--sub);transition:.15s;}
+  .bbbtn.on{border-color:var(--accent);background:var(--accent);color:#fff;}
+  .bb-stage{background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px;text-align:center;}
+  .bb-flow{display:flex;align-items:center;justify-content:center;gap:10px;font-size:13px;}
+  .bb-box{border:2px solid var(--ink);border-radius:10px;padding:16px 22px;font-size:13px;font-weight:700;transition:.3s;}
+  .bb-box.opaque{background:#2b2723;color:#fff;}
+  .bb-box.clear{background:#eef5f3;color:var(--ink);border-color:var(--teal);}
+  .bb-inner{font-size:11px;font-weight:400;color:var(--sub);margin-top:8px;text-align:left;display:none;}
+  .bb-box.clear .bb-inner{display:block;}
+
+  /* W2: trace tree */
+  .tr-tree{background:#2b2723;border-radius:10px;padding:14px;font-family:monospace;font-size:12px;}
+  .tr-node{padding:5px 8px;border-radius:6px;margin:2px 0;cursor:pointer;transition:.15s;display:flex;justify-content:space-between;align-items:center;}
+  .tr-node:hover{background:rgba(255,255,255,.06);}
+  .tr-node.root{color:#e0935f;font-weight:700;}
+  .tr-node.child{color:#9ec79a;}
+  .tr-node .meta{color:#8b8175;font-size:10.5px;}
+  .tr-detail{margin-top:10px;background:#fff;border:1px solid var(--line);border-radius:9px;padding:11px 13px;font-size:12.5px;min-height:40px;}
+
+  /* W3: criteria */
+  .cr-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .cr-card{border:1.5px solid var(--line);border-radius:10px;padding:11px;background:#fff;cursor:pointer;transition:.2s;}
+  .cr-card.on{border-color:var(--teal);background:#eef5f3;}
+  .cr-card .ci{font-size:18px;}
+  .cr-card .cn{font-weight:700;font-size:13px;margin:3px 0;}
+  .cr-card .cd{font-size:11px;color:var(--sub);}
+  .cr-meter{margin-top:12px;background:#efe7d8;border-radius:9px;padding:11px 13px;font-size:13px;text-align:center;}
+
+  /* W4: eval scoreboard */
+  .ev-table{width:100%;border-collapse:collapse;font-size:12.5px;}
+  .ev-table th,.ev-table td{padding:8px 10px;text-align:center;border-bottom:1px solid var(--line);}
+  .ev-table th{font-size:11px;color:var(--sub);background:#efe7d8;}
+  .ev-table td.q{text-align:left;font-size:11.5px;}
+  .ev-mark{font-weight:700;opacity:0;transition:.3s;}
+  .ev-mark.show{opacity:1;}
+  .ev-score{margin-top:12px;display:flex;gap:10px;}
+  .ev-sc{flex:1;background:#efe7d8;border-radius:10px;padding:12px;text-align:center;}
+  .ev-sc .v{font-family:var(--serif);font-weight:700;font-size:24px;color:var(--teal);}
+  .ev-sc .l{font-size:11px;color:var(--sub);}
+
+  /* W5: monitoring loop */
+  .ml-loop{position:relative;height:230px;}
+  .ml-step{position:absolute;width:140px;border:1.5px solid var(--line);border-radius:11px;padding:10px;background:#fff;text-align:center;font-size:11.5px;cursor:pointer;transition:.2s;transform:translate(-50%,-50%);}
+  .ml-step.on{border-color:var(--accent);background:#fdfaf4;box-shadow:0 4px 12px rgba(194,65,12,.12);}
+  .ml-step .si{font-size:18px;}
+  .ml-step .sn{font-weight:700;margin-top:3px;}
+  .ml-detail{margin-top:10px;background:#efe7d8;border-radius:10px;padding:12px 14px;font-size:13px;}
+
+  footer{max-width:var(--maxw);margin:0 auto;padding:30px 22px 80px;color:var(--sub);font-size:14px;border-top:1px solid var(--line);}
+  .next-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin:20px 0 0;}
+  .next-card .nl{font-size:12px;letter-spacing:.14em;color:var(--accent);font-weight:700;}
+  .next-card .nt{font-family:var(--serif);font-weight:700;font-size:18px;margin-top:4px;}
+  .reveal{opacity:0;transform:translateY(18px);transition:opacity .6s ease,transform .6s ease;}
+  .reveal.in{opacity:1;transform:none;}
+  @media(max-width:480px){body{font-size:16px;}.cr-grid{grid-template-columns:1fr;}.ev-score{flex-direction:column;}}
+</style>
+</head>
+<body>
+<div id="progress"></div>
+
+<header class="hero">
+  <div class="eyebrow">LangChain 에이전트 마스터 · Part 16</div>
+  <h1>관측·평가<br>LangSmith</h1>
+  <p class="lead">만든 시스템이 잘 작동하는지 어떻게 알까? 에이전트가 엉뚱한 도구를 부르고 답이 틀려도 — <strong>보지 못하면 고칠 수 없음.</strong> 내부를 들여다보는 관측과, 품질을 수치로 재는 평가를 배움.</p>
+  <div class="hero-meta">
+    <span class="chip">🔴 고급 · 16/18</span>
+    <span class="chip t">트레이싱 · 평가</span>
+    <span class="chip t">예상 40분</span>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- Section 1: black box -->
+  <section class="reveal">
+    <div class="sec-no">16-1</div>
+    <h2>블랙박스를 열다</h2>
+    <p>에이전트는 <strong>블랙박스</strong>가 되기 쉬움 — 질문을 넣으면 답이 나오지만, 그 사이 "어떤 도구를 왜 불렀는지, 왜 틀렸는지"가 안 보임. 계기판 없는 자동차와 같음. 관측은 계기판·블랙박스를 다는 것, 평가는 정기 성능 검사임.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 닫힌 상자 vs 열린 상자</span>
+      <p class="wdesc">토글해서, 관측이 없을 때(블랙박스)와 있을 때(내부가 보임)의 차이를 봄.</p>
+      <div class="bb-toggle" id="w1tog">
+        <button class="bbbtn on" data-k="opaque">🔒 관측 없음</button>
+        <button class="bbbtn" data-k="clear">🔍 관측 있음</button>
+      </div>
+      <div class="bb-stage">
+        <div class="bb-flow">
+          <span>질문</span><span>→</span>
+          <div class="bb-box opaque" id="w1box">
+            <span id="w1label">🤖 ???</span>
+            <div class="bb-inner">• 🔧 policy_lookup("반품") 호출<br>• 👁 "7일 이내" 반환<br>• ⏱ 1.2초 · 💰 320토큰</div>
+          </div>
+          <span>→</span><span>답</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;Part 9·10에서 messages를 펼쳐 흐름을 본 것이 관측의 기본 형태였음. LangSmith는 이를 자동·체계적으로 — 모든 단계를 시각적 트리로, 지연·비용·오류까지 함께 보여줌. <b>측정할 수 없으면 개선할 수 없음.</b></div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>에이전트는 블랙박스가 되기 쉬워, 보지 못하면 못 고침.</li>
+      <li>관측은 내부를 들여다보고, 평가는 품질을 수치화함.</li>
+      <li>측정 없이는 개선 없음 — 프로덕션급의 분기점임.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 2: trace tree -->
+  <section class="reveal">
+    <div class="sec-no">16-2</div>
+    <h2>트레이싱 — 모든 단계를 트리로</h2>
+    <p>트레이싱은 한 실행의 <strong>모든 단계를 트리로 기록</strong>함 — 모델 호출·도구 실행·핸드오프, 각 단계의 입출력·지연·비용까지. <code>@traceable</code> 또는 환경변수 하나로 켜짐(LangChain/LangGraph 자동).</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 트레이스 트리 펼쳐보기</span>
+      <p class="wdesc">각 단계(노드)를 눌러, 그 단계의 입출력·지연·비용을 봄. 수술 녹화를 되짚듯.</p>
+      <div class="tr-tree" id="w2tree">
+        <div class="tr-node root" data-k="root"><span>▸ 🤖 agent_run (루트)</span><span class="meta">2.1s · 540 tok</span></div>
+        <div class="tr-node child" data-k="model1" style="padding-left:22px"><span>▸ 🧠 model_call #1</span><span class="meta">0.8s</span></div>
+        <div class="tr-node child" data-k="tool" style="padding-left:22px"><span>▸ 🔧 policy_lookup</span><span class="meta">0.1s</span></div>
+        <div class="tr-node child" data-k="model2" style="padding-left:22px"><span>▸ 🧠 model_call #2</span><span class="meta">0.9s</span></div>
+      </div>
+      <div class="tr-detail" id="w2detail">위 단계를 눌러보세요.</div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;트레이스는 루트(전체 요청) 아래 하위 단계가 트리로 매달린 구조. 트레이싱은 <b>개발 디버깅</b>과 <b>운영 모니터링</b> 둘 다에 쓰임(16-5).</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>트레이싱은 한 실행의 모든 단계를 트리로 기록함.</li>
+      <li><code>@traceable</code> 또는 환경변수 하나로 켜짐.</li>
+      <li>트레이스를 보면 도구 선택·지연·오류 원인이 즉시 보임.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 3: criteria -->
+  <section class="reveal">
+    <div class="sec-no">16-3</div>
+    <h2>무엇을 평가할까 — 기준</h2>
+    <p>에이전트 품질은 한 가지가 아님. 시험 채점 기준표를 만들듯, <strong>무엇을 잴지</strong> 먼저 정함. 기준에 따라 개선 방향이 달라짐.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 이 시스템의 핵심 기준 고르기</span>
+      <p class="wdesc">"고객 상담 봇"이라면 무엇이 중요할까? 기준을 골라봄(핵심 2~4개 권장).</p>
+      <div class="cr-grid" id="w3grid">
+        <div class="cr-card" data-k="correct"><div class="ci">🎯</div><div class="cn">정확성</div><div class="cd">답이 사실·정답에 맞는가</div></div>
+        <div class="cr-card" data-k="tool"><div class="ci">🔧</div><div class="cn">도구 선택</div><div class="cd">올바른 도구를 불렀는가</div></div>
+        <div class="cr-card" data-k="safe"><div class="ci">🛡️</div><div class="cn">안전성</div><div class="cd">해선 안 될 행동을 피했는가</div></div>
+        <div class="cr-card" data-k="latency"><div class="ci">⏱️</div><div class="cn">지연</div><div class="cd">얼마나 빨리 답하는가</div></div>
+        <div class="cr-card" data-k="cost"><div class="ci">💰</div><div class="cn">비용</div><div class="cd">토큰·호출이 얼마나 드는가</div></div>
+        <div class="cr-card" data-k="rel"><div class="ci">📌</div><div class="cn">관련성</div><div class="cd">질문에 충분·관련되게 답했는가</div></div>
+      </div>
+      <div class="cr-meter" id="w3meter"></div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;기준은 <b>시스템 목적</b>에서 나옴. 상담 봇은 정확성·안전성이, 대량 처리 파이프라인은 비용·지연이 더 중요. 에이전트 특유의 "도구 선택이 옳았나"도 중요 — 답은 맞아도 엉뚱한 경로면 개선 여지가 있음.</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>평가는 "무엇을 잴 것인가"(기준)부터 정함.</li>
+      <li>정확성·도구 선택·관련성·지연·비용·안전성 등 여러 측면.</li>
+      <li>기준은 시스템 목적에서 나오며, 핵심 2~4개로 시작함.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 4: scoreboard -->
+  <section class="reveal">
+    <div class="sec-no">16-4</div>
+    <h2>평가셋과 evaluator — 점수판</h2>
+    <p>평가셋(입력+기대출력)에 에이전트를 돌리고, evaluator(채점기)로 점수화함. 표준 시험지로 반복 채점하듯 — "느낌상 잘하네"가 아니라 객관적 점수로.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 평가 실행</span>
+      <p class="wdesc">"채점"을 누르면 평가셋 3개에 에이전트를 돌려, 정확성·도구선택을 점수화함.</p>
+      <table class="ev-table" id="w4table">
+        <thead><tr><th class="q">질문</th><th>기대</th><th>정확성</th><th>도구선택</th></tr></thead>
+        <tbody>
+          <tr><td class="q">반품은 며칠 안에?</td><td>7일</td><td class="ev-mark" data-r="o">✅</td><td class="ev-mark" data-r="o">✅</td></tr>
+          <tr><td class="q">환불 얼마나 걸려?</td><td>3영업일</td><td class="ev-mark" data-r="o">✅</td><td class="ev-mark" data-r="o">✅</td></tr>
+          <tr><td class="q">배송 언제 출고?</td><td>당일</td><td class="ev-mark" data-r="o">✅</td><td class="ev-mark" data-r="o">✅</td></tr>
+        </tbody>
+      </table>
+      <div class="ev-score" id="w4score" style="display:none;">
+        <div class="ev-sc"><div class="v">100%</div><div class="l">정확성</div></div>
+        <div class="ev-sc"><div class="v">100%</div><div class="l">도구 선택</div></div>
+        <div class="ev-sc"><div class="v">1.0s</div><div class="l">평균 지연</div></div>
+      </div>
+      <div style="margin-top:12px;"><button class="btn" id="w4run">▶ 채점</button></div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;evaluator는 코드(규칙)·LLM 심판(LLM-as-judge)·사람 피드백 세 종류. 평가셋은 작게(5~10) 시작해 <b>실패 사례가 나올 때마다 추가</b>하며 키움 — 살아있는 테스트 스위트.</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>평가셋+evaluator로 체계적으로 점수화함.</li>
+      <li>같은 평가셋 반복 → 버전 간 객관 비교, 회귀 탐지.</li>
+      <li>evaluator는 코드·LLM 심판·사람 — 평가셋은 키워감.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 5: monitoring loop -->
+  <section class="reveal">
+    <div class="sec-no">16-5</div>
+    <h2>운영 모니터링 — 개선 순환</h2>
+    <p>개발 평가가 "출시 전 검사"라면, 운영 모니터링은 "출시 후 상시 감시"임. 비용·지연·오류율을 지켜보다 이상에 대응하고, 발견한 실패를 평가셋에 더해 개선하는 <strong>순환</strong>이 핵심.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 관측 → 개선 순환</span>
+      <p class="wdesc">각 단계를 눌러, 운영 관측에서 개선으로 이어지는 순환을 봄.</p>
+      <div class="ml-loop" id="w5loop">
+        <div class="ml-step on" data-k="observe" style="left:25%;top:18%;"><div class="si">📡</div><div class="sn">운영 관측</div></div>
+        <div class="ml-step" data-k="collect" style="left:75%;top:18%;"><div class="si">🐞</div><div class="sn">실패 수집</div></div>
+        <div class="ml-step" data-k="dataset" style="left:75%;top:78%;"><div class="si">📋</div><div class="sn">평가셋 보강</div></div>
+        <div class="ml-step" data-k="improve" style="left:25%;top:78%;"><div class="si">🔧</div><div class="sn">개선·재배포</div></div>
+      </div>
+      <div class="ml-detail" id="w5detail"></div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;비용·지연·오류율에 임계치와 알림을 걸면 <b>사용자가 불평하기 전에</b> 문제를 잡음. 토큰이 3배 튀면 우연이 아니라 신호(루프 폭주 등). 운영과 개발 평가는 하나의 루프임.</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>운영 모니터링은 실사용 요청을 상시 관측하는 것.</li>
+      <li>비용·지연·오류율을 지켜보고 임계치 알림으로 선제 대응.</li>
+      <li>관측→실패 수집→평가셋 보강→개선의 순환이 핵심.</li>
+    </ol></div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="next-card">
+    <div class="nl">NEXT · PART 17</div>
+    <div class="nt">배포와 신뢰성</div>
+    <p style="margin-top:8px;">만든 시스템을 실제 세상으로. 영속적 상태 저장, 오류 처리·재시도, 안전장치, 비용 관리 — 프로토타입과 프로덕션을 가르는 마지막 요소들.</p>
+  </div>
+  <p style="margin-top:24px;">LangChain 에이전트 마스터 커리큘럼 · Part 16 / 18 · LangChain 1.0 기준</p>
+</footer>
+
+<script>
+const prog=document.getElementById('progress');
+addEventListener('scroll',()=>{const h=document.documentElement;prog.style.width=((h.scrollTop)/(h.scrollHeight-h.clientHeight)*100)+'%';});
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('in');}),{threshold:.12});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+
+/* ===== W1: black box ===== */
+function renderW1(k){
+  const box=document.getElementById('w1box');
+  box.className='bb-box '+k;
+  document.getElementById('w1label').textContent=k==='opaque'?'🤖 ???':'🤖 (내부가 보임)';
+}
+document.querySelectorAll('#w1tog .bbbtn').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('#w1tog .bbbtn').forEach(x=>x.classList.remove('on'));b.classList.add('on');renderW1(b.dataset.k);}));
+renderW1('opaque');
+
+/* ===== W2: trace tree ===== */
+const w2={
+  root:'<b>agent_run</b> (루트) — 전체 요청. 입력: "반품 며칠?" / 출력: "7일 이내" / 총 2.1초, 540토큰. 아래 하위 단계들의 합.',
+  model1:'<b>model_call #1</b> — 첫 모델 호출. 모델이 "policy_lookup을 써야겠다"고 판단(tool_calls 생성). 0.8초.',
+  tool:'<b>policy_lookup("반품")</b> — 도구 실행. 반환: "반품: 수령 후 7일 이내". 0.1초(빠름). 여기서 도구 선택이 옳았는지 확인 가능.',
+  model2:'<b>model_call #2</b> — 도구 결과를 받아 최종 답 생성. "반품은 7일 이내 가능합니다". 0.9초.'
+};
+function renderW2(k){
+  document.querySelectorAll('#w2tree .tr-node').forEach(n=>n.style.background=n.dataset.k===k?'rgba(232,192,125,.18)':'');
+  document.getElementById('w2detail').innerHTML=w2[k];
+}
+document.querySelectorAll('#w2tree .tr-node').forEach(n=>n.addEventListener('click',()=>renderW2(n.dataset.k)));
+renderW2('root');
+
+/* ===== W3: criteria ===== */
+const w3rec={correct:1,tool:1,safe:1}; // recommended for support bot
+const w3state={};
+function renderW3(){
+  document.querySelectorAll('#w3grid .cr-card').forEach(c=>c.classList.toggle('on',w3state[c.dataset.k]));
+  const n=Object.values(w3state).filter(Boolean).length;
+  const m=document.getElementById('w3meter');
+  if(n===0){m.textContent='기준을 골라보세요 (고객 상담 봇 기준)';m.style.color='#7a5a2a';}
+  else if(n<=4){m.innerHTML=`✅ 기준 ${n}개 선택 — 적절함. 상담 봇이라면 <b>정확성·도구선택·안전성</b>이 특히 중요.`;m.style.color='#225349';}
+  else{m.innerHTML=`⚠️ 기준 ${n}개 — 너무 많으면 평가가 무거워짐. 핵심 2~4개로 시작 권장.`;m.style.color='#9a5a2a';}
+}
+document.querySelectorAll('#w3grid .cr-card').forEach(c=>c.addEventListener('click',()=>{
+  w3state[c.dataset.k]=!w3state[c.dataset.k];renderW3();}));
+renderW3();
+
+/* ===== W4: scoreboard ===== */
+document.getElementById('w4run').addEventListener('click',()=>{
+  const marks=[...document.querySelectorAll('#w4table .ev-mark')];
+  marks.forEach((m,i)=>setTimeout(()=>m.classList.add('show'),i*150));
+  setTimeout(()=>{document.getElementById('w4score').style.display='flex';},marks.length*150+200);
+  document.getElementById('w4run').disabled=true;
+});
+
+/* ===== W5: monitoring loop ===== */
+const w5={
+  observe:'<b>📡 운영 관측</b> — 실사용 요청이 모두 트레이스로 쌓임. 비용·지연·오류율을 대시보드로 지켜봄. 토큰 3배 급증 같은 이상은 신호.',
+  collect:'<b>🐞 실패 수집</b> — 운영 트레이스에서 나쁜 사례(틀린 답, 엉뚱한 도구)를 골라냄. 실사용에서만 드러나는 문제가 많음.',
+  dataset:'<b>📋 평가셋 보강</b> — 발견한 실패를 평가셋에 추가(16-4). 평가셋이 현실을 더 잘 반영하게 자람.',
+  improve:'<b>🔧 개선·재배포</b> — 프롬프트·도구·구조를 고치고, 보강된 평가셋으로 회귀 확인 후 재배포. 다시 운영 관측으로 → 순환.'
+};
+function renderW5(k){
+  document.querySelectorAll('#w5loop .ml-step').forEach(s=>s.classList.toggle('on',s.dataset.k===k));
+  document.getElementById('w5detail').innerHTML=w5[k];
+}
+document.querySelectorAll('#w5loop .ml-step').forEach(s=>s.addEventListener('click',()=>renderW5(s.dataset.k)));
+renderW5('observe');
+</script>
+</body>
+</html>

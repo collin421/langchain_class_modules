@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Part 6 · 체인 vs 에이전트</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Gowun+Dodum&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f4efe6;--card:#fbf8f2;--ink:#2b2723;--sub:#6f6457;--accent:#c2410c;
+    --accent-soft:#e9d5c4;--line:#e2d9c9;--teal:#2f6b5e;--gold:#a8762f;
+    --serif:'Gowun Batang',serif;--sans:'Gowun Dodum',sans-serif;--maxw:760px;color-scheme:light only;
+  }
+  @media (prefers-color-scheme:dark){:root{--bg:#f4efe6;--card:#fbf8f2;--ink:#2b2723;}}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.85;font-size:17px;-webkit-text-size-adjust:100%;
+    background-image:radial-gradient(circle at 20% 0%,rgba(194,65,12,.04),transparent 40%),radial-gradient(circle at 90% 100%,rgba(47,107,94,.04),transparent 45%);}
+  #progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:100;transition:width .1s linear;}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 22px;}
+  header.hero{max-width:var(--maxw);margin:0 auto;padding:88px 22px 40px;}
+  .eyebrow{color:var(--accent);font-size:13px;letter-spacing:.22em;font-weight:700;text-transform:uppercase;}
+  h1{font-family:var(--serif);font-weight:700;font-size:clamp(30px,6vw,46px);line-height:1.25;margin:14px 0 18px;letter-spacing:-.01em;}
+  .lead{font-size:18px;color:var(--sub);max-width:62ch;}
+  .hero-meta{margin-top:26px;display:flex;gap:10px;flex-wrap:wrap;}
+  .chip{font-size:12.5px;font-weight:700;letter-spacing:.04em;padding:6px 13px;border-radius:999px;background:var(--accent-soft);color:#8a3408;}
+  .chip.t{background:#d8e8e3;color:#225349;}
+  section{padding:54px 0 30px;border-top:1px solid var(--line);}
+  section:first-of-type{border-top:none;}
+  .sec-no{font-family:var(--serif);font-size:14px;color:var(--accent);font-weight:700;letter-spacing:.1em;}
+  h2{font-family:var(--serif);font-weight:700;font-size:clamp(23px,4.4vw,31px);margin:6px 0 20px;line-height:1.3;}
+  p{margin:0 0 16px;}
+  .sub{color:var(--sub);}
+  strong{color:var(--accent);font-weight:700;}
+  code{font-family:'Gowun Dodum',monospace;background:#efe7d8;color:#8a3408;padding:1.5px 7px;border-radius:6px;font-size:.92em;}
+  pre{background:#2b2723;color:#f4efe6;border-radius:12px;padding:16px 18px;overflow-x:auto;font-size:14px;line-height:1.7;margin:16px 0;}
+  pre code{background:none;color:inherit;padding:0;}
+  pre .k{color:#e0935f;}pre .s{color:#9ec79a;}pre .c{color:#8b8175;font-style:italic;}
+  .note{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px;padding:14px 18px;margin:18px 0;font-size:15.5px;color:var(--sub);}
+  .note b{color:var(--accent);}
+  .summary{background:#efe7d8;border-radius:12px;padding:18px 20px;margin:22px 0 4px;}
+  .summary .h{font-family:var(--serif);font-weight:700;color:var(--accent);font-size:15px;letter-spacing:.05em;margin-bottom:8px;}
+  .summary ol{margin:0;padding-left:20px;}.summary li{margin:5px 0;font-size:15.5px;}
+  .widget{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;margin:26px 0;box-shadow:0 6px 22px rgba(80,60,30,.06);}
+  .widget .wlabel{display:inline-block;font-size:11.5px;font-weight:700;letter-spacing:.14em;color:#fff;background:var(--accent);padding:4px 11px;border-radius:999px;margin-bottom:16px;}
+  .wdesc{font-size:14.5px;margin-bottom:14px;color:var(--sub);}
+  .btn{border:none;background:var(--accent);color:#fff;font-family:var(--sans);font-weight:700;font-size:13.5px;padding:9px 18px;border-radius:9px;cursor:pointer;}
+  .btn.ghost{background:#fdfaf4;border:1px solid var(--line);color:var(--sub);}
+  .btn[disabled]{opacity:.4;cursor:not-allowed;}
+
+  /* W1: side-by-side compare */
+  .vs{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .vs-col{border:1.5px solid var(--line);border-radius:12px;padding:14px;background:#fff;}
+  .vs-col.chain{border-color:var(--gold);}
+  .vs-col.agent{border-color:var(--teal);}
+  .vs-h{font-family:var(--serif);font-weight:700;font-size:15px;text-align:center;padding:6px;border-radius:8px;margin-bottom:10px;}
+  .vs-col.chain .vs-h{background:#fbf3e6;color:#8a5a1a;}
+  .vs-col.agent .vs-h{background:#d8e8e3;color:#225349;}
+  .vs-flow{display:flex;flex-direction:column;gap:5px;}
+  .vs-step{font-size:11.5px;padding:7px 9px;border-radius:7px;background:#fdfaf4;border:1px solid var(--line);opacity:.4;transition:.3s;}
+  .vs-step.lit{opacity:1;}
+  .vs-col.chain .vs-step.lit{border-color:var(--gold);background:#fbf3e6;}
+  .vs-col.agent .vs-step.lit{border-color:var(--teal);background:#eef5f3;}
+  .vs-q{text-align:center;margin-bottom:12px;}
+  .vs-q .pill{display:inline-block;background:var(--ink);color:#fff;padding:6px 16px;border-radius:999px;font-size:13px;}
+  .vs-ctl{margin-top:12px;text-align:center;}
+
+  /* W2: who controls */
+  .wc-toggle{display:flex;gap:8px;margin-bottom:14px;}
+  .wcbtn{flex:1;border:1.5px solid var(--line);background:#fff;border-radius:9px;padding:11px;cursor:pointer;font-family:var(--sans);font-weight:700;font-size:13.5px;color:var(--sub);transition:.15s;}
+  .wcbtn.on{border-color:var(--accent);background:var(--accent);color:#fff;}
+  .wc-stage{background:#fff;border:1px solid var(--line);border-radius:10px;padding:18px;text-align:center;}
+  .wc-driver{font-size:40px;margin-bottom:8px;}
+  .wc-label{font-family:var(--serif);font-weight:700;font-size:16px;margin-bottom:8px;}
+  .wc-desc{font-size:13.5px;color:var(--sub);}
+  .wc-badge{display:inline-block;margin-top:10px;font-size:12px;font-weight:700;padding:5px 13px;border-radius:999px;}
+
+  /* W3: ReAct loop */
+  .loop{position:relative;background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px;}
+  .loop-msgs{display:flex;flex-direction:column;gap:8px;min-height:160px;}
+  .lmsg{border-radius:9px;padding:10px 13px;font-size:13px;opacity:0;transform:translateY(8px);transition:.4s;border-left:4px solid var(--line);}
+  .lmsg.show{opacity:1;transform:none;}
+  .lmsg.human{background:var(--accent-soft);border-left-color:var(--accent);}
+  .lmsg.think{background:#fbf3e6;border-left-color:var(--gold);}
+  .lmsg.action{background:#efe7d8;border-left-color:#8a5a1a;}
+  .lmsg.obs{background:#d8e8e3;border-left-color:var(--teal);}
+  .lmsg.final{background:#eef5f3;border-left-color:var(--teal);font-weight:700;}
+  .lmsg .tag{font-size:10px;font-weight:700;letter-spacing:.05em;display:block;margin-bottom:2px;opacity:.7;}
+  .loop-ctl{margin-top:14px;display:flex;gap:8px;align-items:center;}
+  .loop-count{font-size:12px;color:var(--sub);margin-left:auto;}
+
+  /* W4: cost meter */
+  .cm-toggle{display:flex;gap:8px;margin-bottom:14px;}
+  .cmbtn{flex:1;border:1.5px solid var(--line);background:#fff;border-radius:9px;padding:10px;cursor:pointer;font-family:var(--sans);font-weight:700;font-size:13px;color:var(--sub);transition:.15s;}
+  .cmbtn.on{border-color:var(--accent);background:var(--accent);color:#fff;}
+  .cm-stage{background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px;}
+  .cm-bar{margin:10px 0;}
+  .cm-bar .lbl{font-size:12px;font-weight:700;color:var(--sub);display:flex;justify-content:space-between;margin-bottom:4px;}
+  .cm-track{height:14px;background:#efe7d8;border-radius:999px;overflow:hidden;}
+  .cm-fill{height:100%;border-radius:999px;transition:width .6s ease;}
+  .cm-verdict{margin-top:12px;font-size:13.5px;padding:10px 13px;border-radius:9px;}
+
+  /* W5: boundary quiz */
+  .bq-q{font-family:var(--serif);font-weight:700;font-size:15px;margin-bottom:12px;}
+  .bq-opts{display:flex;gap:8px;}
+  .bq-opt{flex:1;border:1.5px solid var(--line);background:#fdfaf4;border-radius:10px;padding:13px;cursor:pointer;font-size:13.5px;font-weight:700;text-align:center;transition:.15s;}
+  .bq-opt.correct{border-color:var(--teal);background:#d8e8e3;color:#225349;}
+  .bq-opt.wrong{border-color:#c98a6e;background:#f3ddd2;color:#9a3a14;}
+  .bq-fb{margin-top:12px;font-size:13.5px;min-height:18px;color:var(--sub);}
+  .bq-nav{margin-top:12px;display:flex;justify-content:space-between;align-items:center;}
+  .bq-score{font-size:12.5px;color:var(--sub);}
+
+  footer{max-width:var(--maxw);margin:0 auto;padding:30px 22px 80px;color:var(--sub);font-size:14px;border-top:1px solid var(--line);}
+  .next-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin:20px 0 0;}
+  .next-card .nl{font-size:12px;letter-spacing:.14em;color:var(--accent);font-weight:700;}
+  .next-card .nt{font-family:var(--serif);font-weight:700;font-size:18px;margin-top:4px;}
+  .reveal{opacity:0;transform:translateY(18px);transition:opacity .6s ease,transform .6s ease;}
+  .reveal.in{opacity:1;transform:none;}
+  @media(max-width:480px){body{font-size:16px;}.vs{grid-template-columns:1fr;}.bq-opts{flex-direction:column;}}
+</style>
+</head>
+<body>
+<div id="progress"></div>
+
+<header class="hero">
+  <div class="eyebrow">LangChain 에이전트 마스터 · Part 6 · 중급 시작</div>
+  <h1>체인 vs 에이전트</h1>
+  <p class="lead">초급에서 만든 모든 것은 "정해진 길"인 체인이었음. 이제 그 경계를 정면으로 다룸. 둘의 결정적 차이는 단 하나 — <strong>흐름을 누가 제어하는가</strong>. 코드가 정하면 체인, 모델이 정하면 에이전트임.</p>
+  <div class="hero-meta">
+    <span class="chip">🟡 중급 · 6/18</span>
+    <span class="chip t">개념 전환</span>
+    <span class="chip t">예상 35분</span>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- Section 1: side by side -->
+  <section class="reveal">
+    <div class="sec-no">6-1 · 6-2</div>
+    <h2>같은 요구, 다른 처리</h2>
+    <p>체인은 <strong>컨베이어 벨트</strong>(정해진 순서), 에이전트는 <strong>목적지만 듣고 알아서 가는 기사</strong>임. 같은 질문을 던졌을 때 둘이 어떻게 다르게 움직이는지 나란히 봄.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 나란히 실행</span>
+      <p class="wdesc">"실행"을 누르면 같은 질문("경쟁사 가격을 찾아 비교해줘")을 체인과 에이전트가 각자 처리하는 과정이 단계별로 점등됨.</p>
+      <div class="vs-q"><span class="pill">❓ "이 상품의 경쟁사 가격을 찾아 비교해줘"</span></div>
+      <div class="vs">
+        <div class="vs-col chain">
+          <div class="vs-h">🛣️ 체인</div>
+          <div class="vs-flow" id="w1chain">
+            <div class="vs-step">입력 → 프롬프트</div>
+            <div class="vs-step">→ 모델 (암산/추측)</div>
+            <div class="vs-step">→ 파서</div>
+            <div class="vs-step">😕 "검색을 못 해 추측함"</div>
+          </div>
+        </div>
+        <div class="vs-col agent">
+          <div class="vs-h">🧭 에이전트</div>
+          <div class="vs-flow" id="w1agent">
+            <div class="vs-step">입력 → 모델 (판단)</div>
+            <div class="vs-step">🔧 "검색 도구 쓰자" 호출</div>
+            <div class="vs-step">👁 결과 관찰 → 다시 판단</div>
+            <div class="vs-step">😎 "정확히 비교 완료"</div>
+          </div>
+        </div>
+      </div>
+      <div class="vs-ctl"><button class="btn" id="w1run">▶ 나란히 실행</button></div>
+    </div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>체인은 정해진 블록을 정해진 순서로 통과함.</li>
+      <li>에이전트는 모델이 도구를 골라 행동하고 결과를 관찰함.</li>
+      <li>같은 입력도 둘은 완전히 다른 경로로 처리함.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 2: who controls -->
+  <section class="reveal">
+    <div class="sec-no">6-3</div>
+    <h2>결정적 차이 — 흐름의 주인</h2>
+    <p>모든 차이는 한 질문으로 갈림 — <strong>"다음에 무엇을 할지, 누가 정하는가?"</strong> 흐름의 운전대를 코드가 쥐면 체인, 모델이 쥐면 에이전트임.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 운전대는 누구 손에</span>
+      <div class="wc-toggle" id="w2tog">
+        <button class="wcbtn on" data-k="chain">🛣️ 체인</button>
+        <button class="wcbtn" data-k="agent">🧭 에이전트</button>
+      </div>
+      <div class="wc-stage">
+        <div class="wc-driver" id="w2driver"></div>
+        <div class="wc-label" id="w2label"></div>
+        <div class="wc-desc" id="w2desc"></div>
+        <span class="wc-badge" id="w2badge"></span>
+      </div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;에이전트가 더 "똑똑한" 게 아니라 더 <b>유연한</b> 것임. 유연함에는 대가(속도·비용·예측 어려움)가 따름. 둘은 배타적이지 않아 실무에선 섞어 씀(에이전트가 체인을 도구로 쓰는 식).</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>결정적 차이는 "다음 행동을 코드가 정하나, 모델이 정하나"임.</li>
+      <li>에이전트는 더 똑똑한 게 아니라 더 유연한 것임.</li>
+      <li>정해진 길→체인, 동적 판단→에이전트.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 3: ReAct loop -->
+  <section class="reveal">
+    <div class="sec-no">6-4</div>
+    <h2>에이전트의 동작 루프 — ReAct</h2>
+    <p>"스스로 판단한다"는 것은 구체적으로 <strong>생각 → 행동(도구 호출) → 관찰 → 판단</strong>의 루프를 도는 것임. 답이 준비될 때까지 반복함 — 탐정의 수사처럼.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 루프가 도는 과정</span>
+      <p class="wdesc">"(123 + 877)을 5로 나누면?" 질문에 에이전트가 도는 루프를 한 단계씩 따라가 봄. 체인이라면 모델 호출이 1회뿐이지만, 에이전트는 여러 번임.</p>
+      <div class="loop">
+        <div class="loop-msgs" id="w3msgs"></div>
+        <div class="loop-ctl">
+          <button class="btn" id="w3step">▶ 다음 단계</button>
+          <button class="btn ghost" id="w3reset">↻ 초기화</button>
+          <span class="loop-count" id="w3count"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;이 "생각→행동→관찰" 패턴을 <b>ReAct</b>(Reasoning + Acting)라 부름. <code>create_agent</code>가 이 루프를 자동으로 돌려주므로 직접 코딩할 필요 없음. 루프가 너무 많이 돌면 비용·지연이 커져 보통 최대 횟수에 상한을 둠.</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>에이전트는 생각→행동→관찰→판단의 루프를 반복함.</li>
+      <li>한 번의 <code>.invoke()</code>로 모델을 여러 번 부를 수 있음.</li>
+      <li>이 ReAct 루프를 LangGraph 런타임이 자동으로 돌려줌.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 4: cost -->
+  <section class="reveal">
+    <div class="sec-no">6-5</div>
+    <h2>남용 경고 — 망치와 못</h2>
+    <p>에이전트는 "최신·최고"가 아니라 <strong>필요할 때 쓰는 도구</strong>임. 단순 변환에 에이전트를 쓰면 속도·비용·예측 불가의 대가를 치름. 망치를 들면 모든 게 못으로 보이지만, 나사는 드라이버로 돌려야 함.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 같은 일, 다른 비용</span>
+      <p class="wdesc">"상품명 → 마케팅 카드 생성"(정해진 변환)을 체인과 에이전트로 각각 처리할 때의 비용·속도·예측성을 비교함.</p>
+      <div class="cm-toggle" id="w4tog">
+        <button class="cmbtn on" data-k="chain">🛣️ 체인으로</button>
+        <button class="cmbtn" data-k="agent">🧭 에이전트로 (과함)</button>
+      </div>
+      <div class="cm-stage" id="w4stage"></div>
+    </div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>에이전트는 항상 더 나은 선택이 아니라 필요할 때 쓰는 도구임.</li>
+      <li>남용하면 속도·비용·예측 불가·디버깅 부담이 따름.</li>
+      <li>정석: 체인으로 시작해, 동적 판단이 필요한 지점에서만 올림.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 5: boundary quiz -->
+  <section class="reveal">
+    <div class="sec-no">중급 점검</div>
+    <h2>스스로 점검 — 경계 판단</h2>
+    <p>중급의 핵심 감각은 "정해진 길인가, 동적 판단인가"임. 각 요구가 어느 쪽인지 골라봄.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 경계 판단 퀴즈</span>
+      <div class="bq-q" id="w5q"></div>
+      <div class="bq-opts" id="w5opts">
+        <div class="bq-opt" data-k="chain">🛣️ 체인</div>
+        <div class="bq-opt" data-k="agent">🧭 에이전트</div>
+      </div>
+      <div class="bq-fb" id="w5fb"></div>
+      <div class="bq-nav"><span class="bq-score" id="w5score"></span><button class="btn" id="w5next" disabled>다음 →</button></div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="next-card">
+    <div class="nl">NEXT · PART 7</div>
+    <div class="nt">도구(Tool) 정의</div>
+    <p style="margin-top:8px;">에이전트의 힘은 도구에서 나옴. 도구가 없으면 판단만 할 뿐 행동을 못 함. <code>@tool</code> 데코레이터, 함수 시그니처·docstring이 곧 도구 명세가 되는 원리 — 즉 모델이 도구를 어떻게 이해하고 고르는지를 배움.</p>
+  </div>
+  <p style="margin-top:24px;">LangChain 에이전트 마스터 커리큘럼 · Part 6 / 18 · LangChain 1.0 기준</p>
+</footer>
+
+<script>
+const prog=document.getElementById('progress');
+addEventListener('scroll',()=>{const h=document.documentElement;prog.style.width=((h.scrollTop)/(h.scrollHeight-h.clientHeight)*100)+'%';});
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('in');}),{threshold:.12});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+
+/* ===== W1: side by side ===== */
+document.getElementById('w1run').addEventListener('click',()=>{
+  const cs=document.querySelectorAll('#w1chain .vs-step');
+  const as=document.querySelectorAll('#w1agent .vs-step');
+  cs.forEach(s=>s.classList.remove('lit'));as.forEach(s=>s.classList.remove('lit'));
+  let i=0;
+  const tick=()=>{
+    if(i<cs.length){cs[i].classList.add('lit');as[i].classList.add('lit');i++;setTimeout(tick,650);}
+  };
+  tick();
+});
+
+/* ===== W2: who controls ===== */
+const w2={
+  chain:{driver:'⚙️',label:'운전대 = 코드',desc:'개발자가 파이프 구조로 경로를 미리 깔아 둠. 모델은 한 공정일 뿐, 흐름에 관여하지 않음.',badge:'예측 가능 · 빠름 · 안전',bg:'#fbf3e6',col:'#8a5a1a'},
+  agent:{driver:'🤖',label:'운전대 = 모델',desc:'코드는 도구만 쥐여주고 목표를 던짐. 무엇을·언제·몇 번 쓸지는 모델이 실행 중에 판단함.',badge:'유연함 · 도구 사용 · 분기',bg:'#d8e8e3',col:'#225349'}
+};
+function renderW2(k){
+  const d=w2[k];
+  document.getElementById('w2driver').textContent=d.driver;
+  document.getElementById('w2label').textContent=d.label;
+  document.getElementById('w2desc').textContent=d.desc;
+  const b=document.getElementById('w2badge');b.textContent=d.badge;b.style.background=d.bg;b.style.color=d.col;
+}
+document.querySelectorAll('#w2tog .wcbtn').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('#w2tog .wcbtn').forEach(x=>x.classList.remove('on'));t.classList.add('on');renderW2(t.dataset.k);}));
+renderW2('chain');
+
+/* ===== W3: ReAct loop ===== */
+const w3seq=[
+  {cls:'human',tag:'HumanMessage · 질문',txt:'(123 + 877)을 5로 나누면?'},
+  {cls:'think',tag:'AIMessage · 생각',txt:'🤔 "이건 계산이 필요하군. 계산 도구를 써야겠다."'},
+  {cls:'action',tag:'AIMessage · 행동 (tool_calls)',txt:'🔧 calculator("(123 + 877) / 5") 호출'},
+  {cls:'obs',tag:'ToolMessage · 관찰',txt:'👁 도구 결과: 200.0'},
+  {cls:'think',tag:'AIMessage · 판단',txt:'✅ "결과를 얻었다. 이제 답할 수 있다."'},
+  {cls:'final',tag:'AIMessage · 최종 답변',txt:'답은 200입니다.'},
+];
+let w3i=0;
+function renderW3(){
+  const box=document.getElementById('w3msgs');
+  box.innerHTML=w3seq.map((s,idx)=>
+    `<div class="lmsg ${s.cls} ${idx<w3i?'show':''}"><span class="tag">${s.tag}</span>${s.txt}</div>`).join('');
+  document.getElementById('w3count').textContent=`단계 ${Math.min(w3i,w3seq.length)} / ${w3seq.length}  ·  모델 호출 ${[...Array(Math.min(w3i,w3seq.length))].filter((_,i)=>['think','action','final'].includes(w3seq[i].cls)).length}회`;
+  document.getElementById('w3step').disabled=w3i>=w3seq.length;
+  document.getElementById('w3step').textContent=w3i>=w3seq.length?'✅ 루프 완료':'▶ 다음 단계';
+}
+document.getElementById('w3step').addEventListener('click',()=>{if(w3i<w3seq.length){w3i++;renderW3();}});
+document.getElementById('w3reset').addEventListener('click',()=>{w3i=0;renderW3();});
+renderW3();
+
+/* ===== W4: cost meter ===== */
+const w4={
+  chain:{calls:1,speed:18,cost:12,pred:95,verdict:['정해진 변환엔 체인이 정답 — 모델 1회 호출, 빠르고 저렴하고 결과가 일정함.','#d8e8e3','#225349']},
+  agent:{calls:3,speed:75,cost:80,pred:45,verdict:['같은 일에 에이전트는 과함 — 판단 루프마다 모델 호출이 늘어 느리고 비싸고, 경로가 매번 달라져 테스트가 어려움.','#f3ddd2','#9a3a14']}
+};
+function bar(lbl,val,txt,color){return `<div class="cm-bar"><div class="lbl"><span>${lbl}</span><span>${txt}</span></div><div class="cm-track"><div class="cm-fill" style="width:${val}%;background:${color}"></div></div></div>`;}
+function renderW4(k){
+  const d=w4[k];
+  const stage=document.getElementById('w4stage');
+  stage.innerHTML=
+    bar('모델 호출 수',Math.min(d.calls*30,100),d.calls+'회','var(--gold)')+
+    bar('지연(느림)',d.speed,d.speed<30?'빠름':'느림','#b4451f')+
+    bar('비용',d.cost,d.cost<30?'저렴':'비쌈','var(--accent)')+
+    bar('예측 가능성',d.pred,d.pred>70?'높음':'낮음','var(--teal)')+
+    `<div class="cm-verdict" style="background:${d.verdict[1]};color:${d.verdict[2]}">${d.verdict[0]}</div>`;
+}
+document.querySelectorAll('#w4tog .cmbtn').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('#w4tog .cmbtn').forEach(x=>x.classList.remove('on'));t.classList.add('on');renderW4(t.dataset.k);}));
+renderW4('chain');
+
+/* ===== W5: boundary quiz ===== */
+const w5=[
+  {q:'문서를 받아 항상 "요약 → 키워드 추출 → 3줄 정리" 순서로 처리한다.',a:'chain',fb:'체인! 순서가 고정 — 판단 불필요.'},
+  {q:'질문 내용에 따라 사내 위키를 검색할지, 사내 DB를 조회할지, 바로 답할지 정해야 한다.',a:'agent',fb:'에이전트! 도구 선택을 모델이 동적으로 판단해야 함.'},
+  {q:'고객 리뷰를 감정(긍정/부정)으로 분류해 라벨만 붙인다.',a:'chain',fb:'체인! 정해진 분류 변환이라 충분함.'},
+  {q:'예약 요청을 받아, 빈자리가 있으면 예약하고 없으면 대기열에 넣는 판단을 모델이 한다.',a:'agent',fb:'에이전트! 조회 결과에 따른 분기 + 도구 사용이 필요함.'},
+  {q:'단순히 "5 + 7"을 계산해 답한다.',a:'chain',fb:'체인! (혹은 그냥 코드로) — 이런 데 에이전트는 과한 남용임.'},
+];
+let qi=0,answered=false,score=0;
+function renderW5(){
+  answered=false;const it=w5[qi];
+  document.getElementById('w5q').textContent=`Q${qi+1}. ${it.q}`;
+  document.getElementById('w5fb').textContent='';
+  document.getElementById('w5score').textContent=`점수 ${score} / ${w5.length}`;
+  document.getElementById('w5next').disabled=true;
+  document.getElementById('w5next').textContent=qi<w5.length-1?'다음 →':'처음부터 ↺';
+  document.querySelectorAll('#w5opts .bq-opt').forEach(o=>o.className='bq-opt');
+}
+document.querySelectorAll('#w5opts .bq-opt').forEach(o=>o.addEventListener('click',()=>{
+  if(answered)return;answered=true;const it=w5[qi];const ok=o.dataset.k===it.a;
+  document.querySelectorAll('#w5opts .bq-opt').forEach(x=>{if(x.dataset.k===it.a)x.classList.add('correct');});
+  if(!ok)o.classList.add('wrong');else score++;
+  document.getElementById('w5fb').textContent=(ok?'✅ ':'💡 ')+it.fb;
+  document.getElementById('w5score').textContent=`점수 ${score} / ${w5.length}`;
+  document.getElementById('w5next').disabled=false;
+}));
+document.getElementById('w5next').addEventListener('click',()=>{if(qi>=w5.length-1){qi=0;score=0;}else qi++;renderW5();});
+renderW5();
+</script>
+</body>
+</html>

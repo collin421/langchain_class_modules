@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Part 17 · 배포와 신뢰성</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Gowun+Dodum&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f4efe6;--card:#fbf8f2;--ink:#2b2723;--sub:#6f6457;--accent:#c2410c;
+    --accent-soft:#e9d5c4;--line:#e2d9c9;--teal:#2f6b5e;--gold:#a8762f;
+    --serif:'Gowun Batang',serif;--sans:'Gowun Dodum',sans-serif;--maxw:760px;color-scheme:light only;
+  }
+  @media (prefers-color-scheme:dark){:root{--bg:#f4efe6;--card:#fbf8f2;--ink:#2b2723;}}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.85;font-size:17px;-webkit-text-size-adjust:100%;
+    background-image:radial-gradient(circle at 20% 0%,rgba(194,65,12,.04),transparent 40%),radial-gradient(circle at 90% 100%,rgba(47,107,94,.04),transparent 45%);}
+  #progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:100;transition:width .1s linear;}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 22px;}
+  header.hero{max-width:var(--maxw);margin:0 auto;padding:88px 22px 40px;}
+  .eyebrow{color:var(--accent);font-size:13px;letter-spacing:.22em;font-weight:700;text-transform:uppercase;}
+  h1{font-family:var(--serif);font-weight:700;font-size:clamp(30px,6vw,46px);line-height:1.25;margin:14px 0 18px;letter-spacing:-.01em;}
+  .lead{font-size:18px;color:var(--sub);max-width:62ch;}
+  .hero-meta{margin-top:26px;display:flex;gap:10px;flex-wrap:wrap;}
+  .chip{font-size:12.5px;font-weight:700;letter-spacing:.04em;padding:6px 13px;border-radius:999px;background:var(--accent-soft);color:#8a3408;}
+  .chip.t{background:#d8e8e3;color:#225349;}
+  section{padding:54px 0 30px;border-top:1px solid var(--line);}
+  section:first-of-type{border-top:none;}
+  .sec-no{font-family:var(--serif);font-size:14px;color:var(--accent);font-weight:700;letter-spacing:.1em;}
+  h2{font-family:var(--serif);font-weight:700;font-size:clamp(23px,4.4vw,31px);margin:6px 0 20px;line-height:1.3;}
+  p{margin:0 0 16px;}
+  .sub{color:var(--sub);}
+  strong{color:var(--accent);font-weight:700;}
+  code{font-family:'Gowun Dodum',monospace;background:#efe7d8;color:#8a3408;padding:1.5px 7px;border-radius:6px;font-size:.92em;}
+  pre{background:#2b2723;color:#f4efe6;border-radius:12px;padding:16px 18px;overflow-x:auto;font-size:13.5px;line-height:1.7;margin:16px 0;}
+  pre code{background:none;color:inherit;padding:0;}
+  pre .k{color:#e0935f;}pre .s{color:#9ec79a;}pre .c{color:#8b8175;font-style:italic;}
+  .note{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px;padding:14px 18px;margin:18px 0;font-size:15.5px;color:var(--sub);}
+  .note b{color:var(--accent);}
+  .summary{background:#efe7d8;border-radius:12px;padding:18px 20px;margin:22px 0 4px;}
+  .summary .h{font-family:var(--serif);font-weight:700;color:var(--accent);font-size:15px;letter-spacing:.05em;margin-bottom:8px;}
+  .summary ol{margin:0;padding-left:20px;}.summary li{margin:5px 0;font-size:15.5px;}
+  .widget{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;margin:26px 0;box-shadow:0 6px 22px rgba(80,60,30,.06);}
+  .widget .wlabel{display:inline-block;font-size:11.5px;font-weight:700;letter-spacing:.14em;color:#fff;background:var(--accent);padding:4px 11px;border-radius:999px;margin-bottom:16px;}
+  .wdesc{font-size:14.5px;margin-bottom:14px;color:var(--sub);}
+  .btn{border:none;background:var(--accent);color:#fff;font-family:var(--sans);font-weight:700;font-size:13.5px;padding:9px 18px;border-radius:9px;cursor:pointer;}
+  .btn.ghost{background:#fdfaf4;border:1px solid var(--line);color:var(--sub);}
+
+  /* W1: proto vs prod table */
+  .pp-table{width:100%;border-collapse:collapse;font-size:13px;}
+  .pp-table th,.pp-table td{padding:9px 11px;text-align:left;border-bottom:1px solid var(--line);}
+  .pp-table th{font-size:11px;color:var(--sub);background:#efe7d8;}
+  .pp-table .proto{color:var(--sub);}
+  .pp-table .prod{color:var(--teal);font-weight:700;}
+  .pp-row{cursor:pointer;transition:.15s;}
+  .pp-row:hover{background:#fdf6ee;}
+  .pp-row.on{background:#eef5f3;}
+
+  /* W2: persistence restart */
+  .ps-toggle{display:flex;gap:8px;margin-bottom:14px;}
+  .psbtn{flex:1;border:1.5px solid var(--line);background:#fff;border-radius:9px;padding:10px;cursor:pointer;font-family:var(--sans);font-weight:700;font-size:12.5px;color:var(--sub);transition:.15s;}
+  .psbtn.on.mem{border-color:#b4451f;background:#f3ddd2;color:#9a3a14;}
+  .psbtn.on.db{border-color:var(--teal);background:#d8e8e3;color:#225349;}
+  .ps-stage{background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px;}
+  .ps-store{display:flex;align-items:center;gap:10px;border-radius:9px;padding:11px;margin-bottom:10px;font-size:12.5px;}
+  .ps-store.mem{background:#fbeae3;}
+  .ps-store.db{background:#eef5f3;}
+  .ps-data{font-family:monospace;font-size:11.5px;color:var(--sub);}
+  .ps-verdict{font-size:13px;font-weight:700;padding:10px;border-radius:9px;text-align:center;}
+  .ps-verdict.lost{background:#f3ddd2;color:#9a3a14;}
+  .ps-verdict.kept{background:#d8e8e3;color:#225349;}
+  .ps-ctl{margin-top:12px;}
+
+  /* W3: failure absorb */
+  .fa-grid{display:flex;flex-direction:column;gap:8px;}
+  .fa-row{border:1.5px solid var(--line);border-radius:10px;padding:12px 14px;background:#fff;}
+  .fa-fail{font-size:12.5px;font-weight:700;}
+  .fa-bare,.fa-guard{font-size:11.5px;margin-top:6px;padding:6px 10px;border-radius:7px;}
+  .fa-bare{background:#fbeae3;color:#9a3a14;}
+  .fa-guard{background:#eef5f3;color:#225349;display:none;}
+  .fa-row.guarded .fa-guard{display:block;}
+  .fa-row.guarded .fa-bare{display:none;}
+  .fa-toggle{text-align:center;margin-bottom:12px;}
+
+  /* W4: circuit breaker */
+  .cb-stage{background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px;text-align:center;}
+  .cb-loop{font-family:monospace;font-size:13px;margin-bottom:12px;min-height:30px;}
+  .cb-counter{display:inline-block;background:var(--ink);color:#fff;border-radius:8px;padding:6px 14px;font-family:monospace;font-size:14px;margin-bottom:12px;}
+  .cb-limit{font-size:12px;color:var(--sub);margin-bottom:12px;}
+  .cb-bar{height:14px;background:#efe7d8;border-radius:7px;overflow:hidden;margin-bottom:10px;}
+  .cb-fill{height:100%;background:var(--teal);width:0;transition:.2s;}
+  .cb-fill.danger{background:#b4451f;}
+  .cb-verdict{font-size:13px;font-weight:700;padding:9px;border-radius:8px;min-height:20px;}
+  .cb-ctl{margin-top:12px;display:flex;gap:8px;justify-content:center;}
+
+  /* W5: cost levers */
+  .cl-levers{display:flex;flex-direction:column;gap:8px;}
+  .cl-lever{display:flex;align-items:center;gap:12px;border:1.5px solid var(--line);border-radius:10px;padding:11px 13px;cursor:pointer;background:#fff;transition:.2s;}
+  .cl-lever.on{border-color:var(--teal);background:#eef5f3;}
+  .cl-lever .chk{flex:none;width:18px;height:18px;border-radius:5px;border:2px solid var(--line);display:grid;place-items:center;font-size:11px;color:#fff;}
+  .cl-lever.on .chk{background:var(--teal);border-color:var(--teal);}
+  .cl-lever .lt{font-size:12.5px;}
+  .cl-gauge{margin-top:14px;}
+  .cl-glabel{display:flex;justify-content:space-between;font-size:12px;color:var(--sub);margin-bottom:5px;}
+  .cl-gbar{height:16px;background:#efe7d8;border-radius:8px;overflow:hidden;}
+  .cl-gfill{height:100%;background:linear-gradient(90deg,var(--teal),var(--gold));width:100%;transition:.4s;}
+
+  footer{max-width:var(--maxw);margin:0 auto;padding:30px 22px 80px;color:var(--sub);font-size:14px;border-top:1px solid var(--line);}
+  .next-card{background:linear-gradient(135deg,#fbf8f2,#f0f6f4);border:1px solid var(--line);border-radius:14px;padding:20px;margin:20px 0 0;}
+  .next-card .nl{font-size:12px;letter-spacing:.14em;color:var(--teal);font-weight:700;}
+  .next-card .nt{font-family:var(--serif);font-weight:700;font-size:18px;margin-top:4px;}
+  .reveal{opacity:0;transform:translateY(18px);transition:opacity .6s ease,transform .6s ease;}
+  .reveal.in{opacity:1;transform:none;}
+  @media(max-width:480px){body{font-size:16px;}}
+</style>
+</head>
+<body>
+<div id="progress"></div>
+
+<header class="hero">
+  <div class="eyebrow">LangChain 에이전트 마스터 · Part 17</div>
+  <h1>배포와 신뢰성</h1>
+  <p class="lead">시스템을 실제 세상으로 내보냄. 프로토타입은 "한 번 잘 돌면" 충분하지만, 프로덕션은 다름 — 재시작에도 대화가 유지되고, 실패해도 견디고, 무한 루프와 비용 폭주를 막아야 함. <strong>한 번 됨 ≠ 항상 안정.</strong></p>
+  <div class="hero-meta">
+    <span class="chip">🔴 고급 · 17/18</span>
+    <span class="chip t">프로덕션</span>
+    <span class="chip t">예상 40분</span>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- Section 1: proto vs prod -->
+  <section class="reveal">
+    <div class="sec-no">17-1</div>
+    <h2>프로토타입 vs 프로덕션</h2>
+    <p>지금까지 만든 건 대부분 <strong>프로토타입</strong>(한 번 잘 돎). <strong>프로덕션</strong>은 다른 요구를 가짐 — 여러 사용자가 동시에, 며칠에 걸쳐, 실패·재시작 속에서도 안정적이어야 함. 요리 연습과 식당 운영의 차이임.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 무엇이 달라지는가</span>
+      <p class="wdesc">각 측면을 눌러, 프로토타입과 프로덕션이 어떻게 다른지 봄.</p>
+      <table class="pp-table">
+        <thead><tr><th>측면</th><th>프로토타입</th><th>프로덕션</th></tr></thead>
+        <tbody id="w1body">
+          <tr class="pp-row" data-k="state"><td>상태</td><td class="proto">메모리(소실)</td><td class="prod">영속 DB ↗17-2</td></tr>
+          <tr class="pp-row" data-k="fail"><td>실패</td><td class="proto">한 번 되면 됨</td><td class="prod">재시도로 견딤 ↗17-3</td></tr>
+          <tr class="pp-row" data-k="loop"><td>폭주</td><td class="proto">신경 안 씀</td><td class="prod">상한 방어 ↗17-4</td></tr>
+          <tr class="pp-row" data-k="cost"><td>비용</td><td class="proto">무시</td><td class="prod">최적화 ↗17-5</td></tr>
+        </tbody>
+      </table>
+      <div class="note" id="w1detail" style="margin-top:14px;">행을 눌러 자세히 보세요.</div>
+    </div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>프로토타입(한 번 됨)과 프로덕션(항상 안정)은 다른 문제임.</li>
+      <li>프로덕션은 영속 상태·실패 대비·폭주 방어·비용을 요구함.</li>
+      <li>신뢰성은 기능이 아니라 운영의 품질임.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 2: persistence -->
+  <section class="reveal">
+    <div class="sec-no">17-2</div>
+    <h2>영속 상태 — 재시작에도 살아남기</h2>
+    <p><code>InMemorySaver</code>는 상태를 RAM에 둠 — 재시작 시 사라짐(포스트잇). 프로덕션은 <code>SqliteSaver</code>/<code>PostgresSaver</code>로 DB에 저장해 재시작에도 이어감(장부). 교체는 거의 <strong>한 줄</strong>.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 재시작 시뮬레이션</span>
+      <p class="wdesc">저장 방식을 고르고 "서버 재시작"을 눌러, 대화가 사라지는지 유지되는지 봄.</p>
+      <div class="ps-toggle" id="w2tog">
+        <button class="psbtn on mem" data-k="mem">📝 InMemorySaver (RAM)</button>
+        <button class="psbtn db" data-k="db">🗄️ SqliteSaver (DB)</button>
+      </div>
+      <div class="ps-stage">
+        <div class="ps-store" id="w2store"></div>
+        <div class="ps-verdict" id="w2verdict"></div>
+        <div class="ps-ctl"><button class="btn" id="w2restart">🔄 서버 재시작</button> <button class="btn ghost" id="w2reset">↻</button></div>
+      </div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;인터페이스가 같아 교체는 거의 한 줄(InMemorySaver → SqliteSaver). 단, PostgresSaver 등은 최초 <code>setup()</code>(테이블 생성)이 필요하고, 누적되는 체크포인트는 주기적 정리(TTL)가 필요함. 상태엔 큰 파일 대신 <b>참조(URL)만</b> 담음.</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li><code>InMemorySaver</code>는 재시작 시 소실 — 프로덕션은 영속 체크포인터로.</li>
+      <li>교체는 거의 한 줄(setup·저장소 선택만 추가).</li>
+      <li>상태엔 참조만, 오래된 체크포인트는 주기적으로 정리.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 3: failure absorb -->
+  <section class="reveal">
+    <div class="sec-no">17-3</div>
+    <h2>오류 처리 — 실패에 견디기</h2>
+    <p>프로덕션에서 외부 의존(모델·API·네트워크)은 <strong>반드시 가끔 실패함</strong>. 신뢰성은 "실패가 없는 것"이 아니라 "실패해도 무너지지 않는 것" — 재시도·타임아웃·대체로 흡수함.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 가드 있을 때 vs 없을 때</span>
+      <p class="wdesc">토글해서, 같은 실패가 가드 없이는 시스템을 무너뜨리고 가드 있으면 흡수되는 걸 봄.</p>
+      <div class="fa-toggle">
+        <button class="btn" id="w3toggle">🛡️ 가드 켜기/끄기</button>
+      </div>
+      <div class="fa-grid" id="w3grid">
+        <div class="fa-row" data-k="r1">
+          <div class="fa-fail">⚡ 모델 API 일시적 오류 (rate limit)</div>
+          <div class="fa-bare">❌ 가드 없음: 예외 발생 → 요청 실패, 사용자에게 에러</div>
+          <div class="fa-guard">✅ max_retries=3: 잠시 후 자동 재시도 → 대개 성공</div>
+        </div>
+        <div class="fa-row" data-k="r2">
+          <div class="fa-fail">⏱️ 도구가 응답 없이 멈춤</div>
+          <div class="fa-bare">❌ 가드 없음: 요청이 영원히 매달림 → 시스템 점유</div>
+          <div class="fa-guard">✅ timeout=30: 30초 후 중단 → 다른 요청 보호</div>
+        </div>
+        <div class="fa-row" data-k="r3">
+          <div class="fa-fail">💥 도구 내부 예외 (외부 API 다운)</div>
+          <div class="fa-bare">❌ 가드 없음: 예외가 터져 그래프 전체 중단</div>
+          <div class="fa-guard">✅ try/except: "조회 실패" 메시지로 변환 → 에이전트가 대응</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;무엇이든 재시도해선 안 됨. <b>비가역 행동(결제·발송)</b>을 무턱대고 재시도하면 중복 실행 위험 → 멱등성(여러 번 해도 같은 결과)을 보장하거나, 재시도 전 확인(HITL·Part 14)을 둠.</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>외부 의존은 반드시 가끔 실패함 — 예상하고 견딤.</li>
+      <li>재시도·타임아웃·대체·우아한 저하로 흡수함.</li>
+      <li>비가역 행동의 재시도는 멱등성·확인 장치와 함께만.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 4: circuit breaker -->
+  <section class="reveal">
+    <div class="sec-no">17-4</div>
+    <h2>안전장치 — 폭주를 막다</h2>
+    <p>자동화의 큰 위험은 <strong>폭주</strong> — 무한 루프, 비용 치솟음. <code>recursion_limit</code>·단계 카운터·비용 상한·HITL 가드로 막음. 전기의 차단기처럼, 위험 수위에서 회로를 끊음.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · recursion_limit 차단기</span>
+      <p class="wdesc">"한 단계씩"을 눌러, 종료 조건 없는 루프가 돌다 recursion_limit(10)에서 차단되는 걸 봄.</p>
+      <div class="cb-stage">
+        <div class="cb-loop" id="w4loop">node → node → node ... (종료 조건 없음)</div>
+        <div class="cb-counter" id="w4counter">단계: 0</div>
+        <div class="cb-limit">recursion_limit = 10</div>
+        <div class="cb-bar"><div class="cb-fill" id="w4fill"></div></div>
+        <div class="cb-verdict" id="w4verdict"></div>
+        <div class="cb-ctl"><button class="btn" id="w4step">▶ 한 단계씩</button> <button class="btn ghost" id="w4auto">⏩ 자동</button> <button class="btn ghost" id="w4reset">↻</button></div>
+      </div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;<code>recursion_limit</code> 도달 시 LangGraph가 <code>GraphRecursionError</code>를 자동으로 냄 → 잡아서 run을 "error"로 표시하고 우아하게 안내(17-3). <b>이중 안전장치</b>: recursion_limit + 상태 단계 카운터(Part 13)를 함께 둠. 비가역 행동엔 HITL(Part 14).</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>자동화의 큰 위험은 무한 루프·비용 폭주·위험 행동임.</li>
+      <li><code>recursion_limit</code>·단계 카운터·비용 상한·HITL로 막음.</li>
+      <li>기본값을 믿지 말고 상한을 명시 — 무제한은 사고의 씨앗.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 5: cost levers -->
+  <section class="reveal">
+    <div class="sec-no">17-5</div>
+    <h2>비용·지연 관리</h2>
+    <p>프로덕션은 비용·속도가 사업적으로 중요. 모델 선택·메시지 트리밍·캐싱 등으로 최적화함 — 식당의 원가·회전율 관리처럼. 단, <strong>측정(Part 16) 후에</strong> 최적화함.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 최적화 레버</span>
+      <p class="wdesc">레버를 켜며, 비용·지연 게이지가 줄어드는 걸 봄.</p>
+      <div class="cl-levers" id="w5levers">
+        <div class="cl-lever" data-k="model"><div class="chk"></div><div class="lt"><b>모델 차등</b> — 라우팅엔 작은 모델, 핵심 추론에만 큰 모델</div></div>
+        <div class="cl-lever" data-k="trim"><div class="chk"></div><div class="lt"><b>메시지 트리밍</b> — 오래된 대화를 잘라/요약해 컨텍스트 경량화</div></div>
+        <div class="cl-lever" data-k="cache"><div class="chk"></div><div class="lt"><b>캐싱</b> — 반복 요청 결과 재사용</div></div>
+        <div class="cl-lever" data-k="calls"><div class="chk"></div><div class="lt"><b>호출 절감</b> — 불필요한 도구·과한 핸드오프 줄이기</div></div>
+      </div>
+      <div class="cl-gauge">
+        <div class="cl-glabel"><span>비용·지연</span><span id="w5pct">100%</span></div>
+        <div class="cl-gbar"><div class="cl-gfill" id="w5fill"></div></div>
+      </div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;최적화는 <b>측정 후에</b> 함(Part 16). 트레이스로 "어느 단계가 느리고 비싼지" 먼저 보고 거기를 고침. 측정 없는 최적화는 엉뚱한 곳을 깎기 쉬움 — "추측하지 말고 측정하라".</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>프로덕션은 비용·지연이 사업적으로 중요해짐.</li>
+      <li>모델 차등·트리밍·캐싱·호출 절감으로 최적화함.</li>
+      <li>최적화는 측정(트레이스) 후에 — 추측하지 말고 측정함.</li>
+    </ol></div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="next-card">
+    <div class="nl">NEXT · PART 18 · 졸업 프로젝트</div>
+    <div class="nt">최종 프로젝트 — 배운 전부를 하나로</div>
+    <p style="margin-top:8px;">초급의 체인부터 고급의 그래프·HITL·멀티에이전트·관측·신뢰성까지, 18개 파트의 모든 것을 결합한 완성형 시스템을 설계·구현하며 커리큘럼을 졸업함.</p>
+  </div>
+  <p style="margin-top:24px;">LangChain 에이전트 마스터 커리큘럼 · Part 17 / 18 · LangChain 1.0 기준</p>
+</footer>
+
+<script>
+const prog=document.getElementById('progress');
+addEventListener('scroll',()=>{const h=document.documentElement;prog.style.width=((h.scrollTop)/(h.scrollHeight-h.clientHeight)*100)+'%';});
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('in');}),{threshold:.12});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+
+/* ===== W1: proto vs prod ===== */
+const w1={
+  state:'<b>상태</b> — 프로토타입은 InMemorySaver(RAM)라 재시작 시 대화가 사라짐. 프로덕션은 SqliteSaver/PostgresSaver로 DB에 저장해 재시작에도 유지(17-2).',
+  fail:'<b>실패</b> — 프로토타입은 한 번 되면 됨. 프로덕션은 모델·API가 반드시 가끔 실패하므로 재시도·타임아웃으로 견딤(17-3).',
+  loop:'<b>폭주</b> — 프로토타입은 무한 루프를 신경 안 씀. 프로덕션은 recursion_limit·비용 상한으로 폭주를 방어함(17-4).',
+  cost:'<b>비용</b> — 프로토타입은 비용 무시. 프로덕션은 모델 차등·트리밍·캐싱으로 비용·지연을 최적화함(17-5).'
+};
+function renderW1(k){
+  document.querySelectorAll('#w1body .pp-row').forEach(r=>r.classList.toggle('on',r.dataset.k===k));
+  document.getElementById('w1detail').innerHTML=w1[k];
+}
+document.querySelectorAll('#w1body .pp-row').forEach(r=>r.addEventListener('click',()=>renderW1(r.dataset.k)));
+renderW1('state');
+
+/* ===== W2: persistence ===== */
+let w2mode='mem',w2restarted=false;
+function renderW2(){
+  const store=document.getElementById('w2store');
+  const v=document.getElementById('w2verdict');
+  if(w2mode==='mem'){
+    store.className='ps-store mem';
+    store.innerHTML='📝 RAM <span class="ps-data">'+(w2restarted?'(비어 있음)':'thread "user-1": ["내 이름은 춘현이야", "AI: 반가워요 춘현님!"]')+'</span>';
+    if(w2restarted){v.className='ps-verdict lost';v.textContent='❌ 재시작 후 대화가 사라짐 — "춘현"을 기억 못 함';}
+    else{v.className='ps-verdict';v.textContent='💬 대화 저장됨 (RAM). 재시작하면?';v.style.background='#efe7d8';v.style.color='#7a5a2a';}
+  }else{
+    store.className='ps-store db';
+    store.innerHTML='🗄️ agent_state.db <span class="ps-data">thread "user-1": ["내 이름은 춘현이야", "AI: 반가워요 춘현님!"]</span>';
+    if(w2restarted){v.className='ps-verdict kept';v.textContent='✅ 재시작 후에도 대화 유지 — "춘현"을 기억함';}
+    else{v.className='ps-verdict';v.textContent='💬 대화 저장됨 (DB 파일). 재시작해도?';v.style.background='#efe7d8';v.style.color='#7a5a2a';}
+  }
+}
+document.querySelectorAll('#w2tog .psbtn').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('#w2tog .psbtn').forEach(x=>x.classList.remove('on'));b.classList.add('on');w2mode=b.dataset.k;w2restarted=false;renderW2();}));
+document.getElementById('w2restart').addEventListener('click',()=>{w2restarted=true;renderW2();});
+document.getElementById('w2reset').addEventListener('click',()=>{w2restarted=false;renderW2();});
+renderW2();
+
+/* ===== W3: failure absorb ===== */
+let w3guard=false;
+document.getElementById('w3toggle').addEventListener('click',()=>{
+  w3guard=!w3guard;
+  document.querySelectorAll('#w3grid .fa-row').forEach(r=>r.classList.toggle('guarded',w3guard));
+  document.getElementById('w3toggle').textContent=w3guard?'🛡️ 가드 ON (끄기)':'🛡️ 가드 OFF (켜기)';
+});
+
+/* ===== W4: circuit breaker ===== */
+let w4n=0,w4timer=null;
+function renderW4(){
+  document.getElementById('w4counter').textContent='단계: '+w4n;
+  const pct=Math.min(w4n/10*100,100);
+  const fill=document.getElementById('w4fill');
+  fill.style.width=pct+'%';
+  fill.classList.toggle('danger',w4n>=7);
+  const v=document.getElementById('w4verdict');
+  const loop=document.getElementById('w4loop');
+  if(w4n>=10){
+    loop.textContent='⛔ 차단!';
+    v.className='cb-verdict';v.style.background='#f3ddd2';v.style.color='#9a3a14';
+    v.textContent='GraphRecursionError 발생 → 차단됨. 잡아서 "오류"로 안내(우아한 저하)';
+    document.getElementById('w4step').disabled=true;
+    if(w4timer){clearInterval(w4timer);w4timer=null;}
+  }else{
+    loop.textContent='node → '.repeat(Math.min(w4n+1,4))+'...';
+    v.className='cb-verdict';v.style.background='#eef5f3';v.style.color='#225349';
+    v.textContent=w4n===0?'종료 조건 없는 루프 — 차단기가 막아줄까?':'계속 도는 중... (한도까지 '+(10-w4n)+'단계)';
+    document.getElementById('w4step').disabled=false;
+  }
+}
+document.getElementById('w4step').addEventListener('click',()=>{if(w4n<10){w4n++;renderW4();}});
+document.getElementById('w4auto').addEventListener('click',()=>{
+  if(w4timer)return;
+  w4timer=setInterval(()=>{if(w4n<10){w4n++;renderW4();}else{clearInterval(w4timer);w4timer=null;}},300);
+});
+document.getElementById('w4reset').addEventListener('click',()=>{if(w4timer){clearInterval(w4timer);w4timer=null;}w4n=0;renderW4();});
+renderW4();
+
+/* ===== W5: cost levers ===== */
+const w5state={model:false,trim:false,cache:false,calls:false};
+const w5save={model:25,trim:20,cache:18,calls:12};
+function renderW5(){
+  document.querySelectorAll('#w5levers .cl-lever').forEach(l=>{
+    const on=w5state[l.dataset.k];l.classList.toggle('on',on);l.querySelector('.chk').textContent=on?'✓':'';
+  });
+  let pct=100;
+  for(const k in w5state){if(w5state[k])pct-=w5save[k];}
+  document.getElementById('w5fill').style.width=pct+'%';
+  document.getElementById('w5pct').textContent=pct+'%';
+}
+document.querySelectorAll('#w5levers .cl-lever').forEach(l=>l.addEventListener('click',()=>{
+  w5state[l.dataset.k]=!w5state[l.dataset.k];renderW5();}));
+renderW5();
+</script>
+</body>
+</html>

@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Part 15 · 멀티에이전트 오케스트레이션</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Gowun+Dodum&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f4efe6;--card:#fbf8f2;--ink:#2b2723;--sub:#6f6457;--accent:#c2410c;
+    --accent-soft:#e9d5c4;--line:#e2d9c9;--teal:#2f6b5e;--gold:#a8762f;
+    --serif:'Gowun Batang',serif;--sans:'Gowun Dodum',sans-serif;--maxw:760px;color-scheme:light only;
+  }
+  @media (prefers-color-scheme:dark){:root{--bg:#f4efe6;--card:#fbf8f2;--ink:#2b2723;}}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.85;font-size:17px;-webkit-text-size-adjust:100%;
+    background-image:radial-gradient(circle at 20% 0%,rgba(194,65,12,.04),transparent 40%),radial-gradient(circle at 90% 100%,rgba(47,107,94,.04),transparent 45%);}
+  #progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:100;transition:width .1s linear;}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 22px;}
+  header.hero{max-width:var(--maxw);margin:0 auto;padding:88px 22px 40px;}
+  .eyebrow{color:var(--accent);font-size:13px;letter-spacing:.22em;font-weight:700;text-transform:uppercase;}
+  h1{font-family:var(--serif);font-weight:700;font-size:clamp(30px,6vw,46px);line-height:1.25;margin:14px 0 18px;letter-spacing:-.01em;}
+  .lead{font-size:18px;color:var(--sub);max-width:62ch;}
+  .hero-meta{margin-top:26px;display:flex;gap:10px;flex-wrap:wrap;}
+  .chip{font-size:12.5px;font-weight:700;letter-spacing:.04em;padding:6px 13px;border-radius:999px;background:var(--accent-soft);color:#8a3408;}
+  .chip.t{background:#d8e8e3;color:#225349;}
+  section{padding:54px 0 30px;border-top:1px solid var(--line);}
+  section:first-of-type{border-top:none;}
+  .sec-no{font-family:var(--serif);font-size:14px;color:var(--accent);font-weight:700;letter-spacing:.1em;}
+  h2{font-family:var(--serif);font-weight:700;font-size:clamp(23px,4.4vw,31px);margin:6px 0 20px;line-height:1.3;}
+  p{margin:0 0 16px;}
+  .sub{color:var(--sub);}
+  strong{color:var(--accent);font-weight:700;}
+  code{font-family:'Gowun Dodum',monospace;background:#efe7d8;color:#8a3408;padding:1.5px 7px;border-radius:6px;font-size:.92em;}
+  pre{background:#2b2723;color:#f4efe6;border-radius:12px;padding:16px 18px;overflow-x:auto;font-size:13.5px;line-height:1.7;margin:16px 0;}
+  pre code{background:none;color:inherit;padding:0;}
+  pre .k{color:#e0935f;}pre .s{color:#9ec79a;}pre .c{color:#8b8175;font-style:italic;}
+  .note{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px;padding:14px 18px;margin:18px 0;font-size:15.5px;color:var(--sub);}
+  .note b{color:var(--accent);}
+  .summary{background:#efe7d8;border-radius:12px;padding:18px 20px;margin:22px 0 4px;}
+  .summary .h{font-family:var(--serif);font-weight:700;color:var(--accent);font-size:15px;letter-spacing:.05em;margin-bottom:8px;}
+  .summary ol{margin:0;padding-left:20px;}.summary li{margin:5px 0;font-size:15.5px;}
+  .widget{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;margin:26px 0;box-shadow:0 6px 22px rgba(80,60,30,.06);}
+  .widget .wlabel{display:inline-block;font-size:11.5px;font-weight:700;letter-spacing:.14em;color:#fff;background:var(--accent);padding:4px 11px;border-radius:999px;margin-bottom:16px;}
+  .wdesc{font-size:14.5px;margin-bottom:14px;color:var(--sub);}
+  .btn{border:none;background:var(--accent);color:#fff;font-family:var(--sans);font-weight:700;font-size:13.5px;padding:9px 18px;border-radius:9px;cursor:pointer;}
+  .btn.ghost{background:#fdfaf4;border:1px solid var(--line);color:var(--sub);}
+  .btn[disabled]{opacity:.4;cursor:not-allowed;}
+
+  /* W1: solo overload */
+  .so-toggle{display:flex;gap:8px;margin-bottom:14px;}
+  .sobtn{flex:1;border:1.5px solid var(--line);background:#fff;border-radius:9px;padding:10px;cursor:pointer;font-family:var(--sans);font-weight:700;font-size:12.5px;color:var(--sub);transition:.15s;}
+  .sobtn.on{border-color:var(--accent);background:var(--accent);color:#fff;}
+  .so-stage{background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px;text-align:center;}
+  .so-agent{display:inline-block;border:2px solid var(--line);border-radius:12px;padding:14px 20px;margin-bottom:10px;}
+  .so-agent .em{font-size:30px;}
+  .so-tools{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;margin-top:8px;}
+  .so-tool{font-size:10px;background:#efe7d8;border-radius:999px;padding:3px 8px;}
+  .so-verdict{margin-top:10px;font-size:13px;padding:10px;border-radius:9px;}
+  .so-verdict.ok{background:#d8e8e3;color:#225349;}.so-verdict.bad{background:#f3ddd2;color:#9a3a14;}
+
+  /* W2: team */
+  .tm-grid{display:flex;gap:10px;}
+  .tm-card{flex:1;border:1.5px solid var(--line);border-radius:11px;padding:13px;background:#fff;text-align:center;}
+  .tm-card .em{font-size:26px;}
+  .tm-card .nm{font-family:monospace;font-weight:700;font-size:12px;margin:4px 0;}
+  .tm-card .role{font-size:10.5px;color:var(--sub);}
+  .tm-card .tools{font-size:10px;margin-top:6px;color:#8a5a1a;background:#fbf3e6;border-radius:6px;padding:4px;}
+
+  /* W3: supervisor routing + handoff */
+  .sv-stage{background:#2b2723;border-radius:12px;padding:18px;}
+  .sv-svg{width:100%;max-width:440px;height:240px;display:block;margin:0 auto;}
+  .sv-log{margin-top:12px;background:#fff;border:1px solid var(--line);border-radius:9px;padding:11px 13px;font-size:12.5px;min-height:44px;font-family:monospace;}
+  .sv-ctl{margin-top:12px;display:flex;gap:8px;align-items:center;}
+  .sv-cnt{font-size:12px;color:var(--sub);margin-left:auto;}
+
+  /* W4: shared state board */
+  .sb-board{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;}
+  .sb-title{font-size:11px;font-weight:700;color:var(--sub);margin-bottom:10px;text-align:center;}
+  .sb-items{display:flex;flex-direction:column;gap:7px;}
+  .sb-item{border-radius:9px;padding:9px 12px;font-size:12.5px;opacity:0;transform:translateY(6px);transition:.4s;border-left:4px solid var(--line);background:#fdfaf4;}
+  .sb-item.show{opacity:1;transform:none;}
+  .sb-item .by{font-weight:700;font-size:10.5px;display:block;margin-bottom:2px;}
+  .sb-item.res{border-left-color:var(--teal);}
+  .sb-item.wri{border-left-color:var(--gold);}
+  .sb-item.rev{border-left-color:var(--accent);}
+  .sb-ctl{margin-top:12px;display:flex;gap:8px;align-items:center;}
+
+  /* W5: ladder top */
+  .ld-steps{display:flex;flex-direction:column;gap:0;}
+  .ld-step{display:flex;align-items:center;gap:12px;background:#fff;border:1.5px solid var(--line);border-radius:11px;padding:12px 15px;cursor:pointer;transition:.2s;}
+  .ld-step.on{border-color:var(--accent);background:#fdfaf4;}
+  .ld-step.top.on{border-color:var(--accent);background:#f3e0d2;}
+  .ld-step .lw{flex:none;font-size:10.5px;font-weight:700;color:var(--sub);width:46px;}
+  .ld-step .ln{font-family:var(--serif);font-weight:700;font-size:14.5px;}
+  .ld-step .ld{font-size:11.5px;color:var(--sub);}
+  .ld-conn{text-align:center;color:var(--gold);font-size:13px;}
+  .ld-detail{margin-top:12px;background:#efe7d8;border-radius:10px;padding:13px 15px;font-size:13.5px;}
+
+  footer{max-width:var(--maxw);margin:0 auto;padding:30px 22px 80px;color:var(--sub);font-size:14px;border-top:1px solid var(--line);}
+  .next-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin:20px 0 0;}
+  .next-card .nl{font-size:12px;letter-spacing:.14em;color:var(--accent);font-weight:700;}
+  .next-card .nt{font-family:var(--serif);font-weight:700;font-size:18px;margin-top:4px;}
+  .reveal{opacity:0;transform:translateY(18px);transition:opacity .6s ease,transform .6s ease;}
+  .reveal.in{opacity:1;transform:none;}
+  @media(max-width:480px){body{font-size:16px;}.tm-grid{flex-direction:column;}}
+</style>
+</head>
+<body>
+<div id="progress"></div>
+
+<header class="hero">
+  <div class="eyebrow">LangChain 에이전트 마스터 · Part 15</div>
+  <h1>멀티에이전트<br>오케스트레이션</h1>
+  <p class="lead">한 에이전트가 너무 많은 일을 떠맡으면 도구가 넘쳐 판단이 흐려짐. 일을 <strong>여러 전문 에이전트로 나누고</strong>, <strong>감독자(supervisor)</strong>가 작업을 적절한 전문가에게 분배·조율함. 만능 직원 대신 전문가 팀과 팀장을 두는 것.</p>
+  <div class="hero-meta">
+    <span class="chip">🔴 고급 · 15/18</span>
+    <span class="chip t">supervisor</span>
+    <span class="chip t">예상 45분</span>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- Section 1: solo overload -->
+  <section class="reveal">
+    <div class="sec-no">15-1</div>
+    <h2>한 에이전트의 한계</h2>
+    <p>단일 에이전트는 강력하지만, 맡는 일이 늘수록 <strong>도구가 넘쳐 선택이 흐려지고</strong>(Part 7), 여러 전문성을 한 명이 다 하면 <strong>각 영역이 얕아짐</strong>. 모든 일을 혼자 하는 만능 직원과 같음.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 도구가 늘어나면</span>
+      <p class="wdesc">단일 에이전트에 도구를 늘려가며, 언제 선택이 흐려지는지 봄.</p>
+      <div class="so-toggle" id="w1tog">
+        <button class="sobtn on" data-k="few">도구 3개</button>
+        <button class="sobtn" data-k="many">도구 12개</button>
+      </div>
+      <div class="so-stage">
+        <div class="so-agent">
+          <div class="em">🤖</div>
+          <div style="font-size:12px;font-weight:700;">만능 에이전트</div>
+          <div class="so-tools" id="w1tools"></div>
+        </div>
+        <div class="so-verdict" id="w1verdict"></div>
+      </div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;멀티에이전트가 항상 더 낫지는 않음. 단일로 충분한 일을 쪼개면 복잡성·비용만 늘어남(Part 6·12 남용 경계와 같음). "도구 과다·전문성 희석으로 버거워질 때"가 전환 신호임.</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>단일 에이전트는 도구 과다·전문성 희석의 한계가 있음.</li>
+      <li>멀티에이전트는 일을 영역별 전문가로 분업해 해결함.</li>
+      <li>분업엔 조율 비용 — 단일로 충분하면 안 쪼갬.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 2: team -->
+  <section class="reveal">
+    <div class="sec-no">15-2</div>
+    <h2>전문 에이전트 나누기</h2>
+    <p>일을 역할별로 나눠 각 전문 에이전트를 <code>create_agent</code>로 만듦 — 회사를 부서로 나누듯. 각자 <strong>자기 영역 도구·프롬프트만</strong> 가져 선택이 정확하고 전문적임. 감독자가 참조하도록 <code>name</code>을 줌.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 전문가 팀</span>
+      <p class="wdesc">세 전문 에이전트. 각자 좁은 영역에 집중함.</p>
+      <div class="tm-grid">
+        <div class="tm-card"><div class="em">🔬</div><div class="nm">researcher</div><div class="role">자료 조사</div><div class="tools">search_reference</div></div>
+        <div class="tm-card"><div class="em">✍️</div><div class="nm">writer</div><div class="role">문서 작성</div><div class="tools">write_report</div></div>
+        <div class="tm-card"><div class="em">🔎</div><div class="nm">reviewer</div><div class="role">검토</div><div class="tools">review_doc</div></div>
+      </div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;각 전문 에이전트는 그 자체로 완전한 에이전트(도구·RAG·메모리·루프를 다 가짐). 차이는 <b>범위가 좁다</b>는 것뿐. 너무 잘게 쪼개면 조율 비용↑ — "리서치/작성/검토"처럼 의미 있는 큰 역할로.</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>일을 역할별로 나눠 각 전문 에이전트를 만듦.</li>
+      <li>각자 자기 영역 도구·프롬프트만 가져 정확·전문적임.</li>
+      <li>감독자가 참조하도록 명확한 <code>name</code>을 줌.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 3: supervisor routing -->
+  <section class="reveal">
+    <div class="sec-no">15-3</div>
+    <h2>감독자 — 작업 분배와 핸드오프</h2>
+    <p><code>create_supervisor</code>로 만든 감독자는 요청을 보고 <strong>"이 일은 누가"</strong>를 판단해 전문가에게 넘기고(핸드오프), 결과를 받아 다음을 정함 — 프로젝트 팀장처럼. 감독자가 중앙 통제하므로 모두가 서로 부르는 혼란을 피함.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 감독자가 팀을 조율</span>
+      <p class="wdesc">"한 단계씩"을 눌러, 감독자가 researcher→writer→reviewer로 핸드오프하고 다시 돌아오는 흐름을 봄.</p>
+      <div class="sv-stage"><svg class="sv-svg" id="w3svg" viewBox="0 0 440 240"></svg></div>
+      <div class="sv-log" id="w3log"></div>
+      <div class="sv-ctl">
+        <button class="btn" id="w3step">▶ 한 단계씩</button>
+        <button class="btn ghost" id="w3reset">↻</button>
+        <span class="sv-cnt" id="w3cnt"></span>
+      </div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;핸드오프 시 기본적으로 <b>전체 메시지 이력</b>이 다음 에이전트에 전달돼 맥락을 알고 일함. 감독자 <code>prompt</code>에 "어떤 일은 누구에게"를 명확히 적는 게 핵심(도구 docstring과 같은 역할).</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>감독자가 요청을 보고 적절한 전문가에게 작업을 분배함.</li>
+      <li>핸드오프로 제어·맥락을 넘기고 결과를 받아 다음을 정함.</li>
+      <li>중앙 통제 → 모두가 서로 부르는 혼란을 피함.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 4: shared state -->
+  <section class="reveal">
+    <div class="sec-no">15-4</div>
+    <h2>공유 상태 — 결과 주고받기</h2>
+    <p>전문가들은 <strong>공유 상태(작업 게시판)</strong>로 결과를 주고받음 — Part 13의 상태가 멀티에이전트 단위로 커진 것. 리서처 결과를 라이터가 보고, 라이터 글을 리뷰어가 봄.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 작업 게시판에 쌓이는 결과</span>
+      <p class="wdesc">"다음"을 누르면 각 전문가가 공유 상태(게시판)에 결과를 더하고, 다음 전문가가 그걸 받아 이어가는 걸 봄.</p>
+      <div class="sb-board">
+        <div class="sb-title">📋 공유 상태 (shared state)</div>
+        <div class="sb-items" id="w4items"></div>
+      </div>
+      <div class="sb-ctl">
+        <button class="btn" id="w4step">▶ 다음</button>
+        <button class="btn ghost" id="w4reset">↻</button>
+      </div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;공유 상태에 무엇을 담을지 설계가 멀티에이전트 품질의 핵심. 메시지만 공유할 수도, "조사결과·초안·검토의견"처럼 구조화 필드를 둘 수도 있음(Part 13 커스텀 State). 전달 정보가 많으면 토큰 비용↑.</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>전문가들은 공유 상태로 결과를 주고받음.</li>
+      <li>상태가 에이전트들을 거치며 결과를 누적함(Part 13 확장).</li>
+      <li>공유 상태 설계가 멀티에이전트 품질의 핵심임.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 5: ladder top -->
+  <section class="reveal">
+    <div class="sec-no">15-5</div>
+    <h2>사다리의 맨 위 — 언제 멀티인가</h2>
+    <p>멀티에이전트는 <strong>가장 무거운 구조</strong> — 느리고 비싸고 복잡함(감독자 판단·핸드오프·추가 호출). Part 12의 사다리 맨 위에 놓임. 정석은 여전히 <strong>가벼운 것부터, 천장에 닿을 때만 올리는 것</strong>.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 확장된 사다리</span>
+      <p class="wdesc">각 단계를 눌러, 언제 그것을 쓰고 언제 위로 올라가는지 봄.</p>
+      <div class="ld-steps">
+        <div class="ld-conn">↑ 천장에 닿을 때만 (무거워짐)</div>
+        <div class="ld-step top" data-k="multi"><span class="lw">최상</span><div><div class="ln">👥 멀티에이전트</div><div class="ld">도구 과다·전문성 분리가 필요할 때</div></div></div>
+        <div class="ld-conn">↑</div>
+        <div class="ld-step" data-k="graph"><span class="lw">무거움</span><div><div class="ln">🕸️ 그래프 / HITL</div><div class="ld">흐름 보장·사람 개입이 필요할 때</div></div></div>
+        <div class="ld-conn">↑</div>
+        <div class="ld-step" data-k="agent"><span class="lw">중간</span><div><div class="ln">🧭 단일 에이전트</div><div class="ld">동적 판단·도구가 필요할 때</div></div></div>
+        <div class="ld-conn">↑</div>
+        <div class="ld-step on" data-k="chain"><span class="lw">가벼움</span><div><div class="ln">🛣️ 체인</div><div class="ld">정해진 변환이면 (시작!)</div></div></div>
+      </div>
+      <div class="ld-detail" id="w5detail"></div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;멀티에이전트도 내부에서 각 전문가가 그래프·HITL·RAG를 품을 수 있음 — 계층은 그대로 중첩됨(Part 12). "왜 멀티인가"에 "도구 과다/전문성 분리가 필요해서"로 답할 수 있어야 함. "멋있어서"는 위험 신호.</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>멀티에이전트는 가장 무거운 구조 — 느리고 비싸고 복잡.</li>
+      <li>도구 과다·전문성 분리가 필요할 때만, 단순하면 단일로.</li>
+      <li>사다리 맨 위 — 가벼운 것부터, 천장에 닿을 때만 올림.</li>
+    </ol></div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="next-card">
+    <div class="nl">NEXT · PART 16</div>
+    <div class="nt">관측·평가 (LangSmith)</div>
+    <p style="margin-top:8px;">만든 시스템이 잘 작동하는지 어떻게 알까? 에이전트의 모든 단계를 추적하고(관측), 답의 품질을 체계적으로 측정하는(평가) 법을 배움 — 보지 못하면 고칠 수 없음.</p>
+  </div>
+  <p style="margin-top:24px;">LangChain 에이전트 마스터 커리큘럼 · Part 15 / 18 · LangChain 1.0 기준</p>
+</footer>
+
+<script>
+const prog=document.getElementById('progress');
+addEventListener('scroll',()=>{const h=document.documentElement;prog.style.width=((h.scrollTop)/(h.scrollHeight-h.clientHeight)*100)+'%';});
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('in');}),{threshold:.12});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+
+/* ===== W1: solo overload ===== */
+const w1={
+  few:{tools:['search','write','review'],verdict:['ok','✅ 도구 3개 — 선택이 명확함. 단일 에이전트로 충분 (멀티는 과함)']},
+  many:{tools:['search','write','review','translate','chart','email','calc','db','slack','pdf','image','schedule'],
+    verdict:['bad','⚠️ 도구 12개 — 모델이 무엇을 고를지 헷갈림. 전문성도 희석됨 → 분업(멀티) 신호']}
+};
+function renderW1(k){
+  const d=w1[k];
+  document.getElementById('w1tools').innerHTML=d.tools.map(t=>`<span class="so-tool">${t}</span>`).join('');
+  const v=document.getElementById('w1verdict');v.className='so-verdict '+d.verdict[0];v.textContent=d.verdict[1];
+}
+document.querySelectorAll('#w1tog .sobtn').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('#w1tog .sobtn').forEach(x=>x.classList.remove('on'));b.classList.add('on');renderW1(b.dataset.k);}));
+renderW1('few');
+
+/* ===== W3: supervisor routing ===== */
+const w3pos={sup:{x:220,y:40},res:{x:90,y:170},wri:{x:220,y:170},rev:{x:350,y:170}};
+const w3seq=[
+  {active:'sup',edge:null,log:'[supervisor] 요청 분석: "조사→작성→검토 순으로"'},
+  {active:'res',edge:['sup','res'],log:'[supervisor → researcher] 핸드오프: 자료 조사 위임'},
+  {active:'sup',edge:['res','sup'],log:'[researcher → supervisor] 조사 결과 반환 (공유 상태에 누적)'},
+  {active:'wri',edge:['sup','wri'],log:'[supervisor → writer] 핸드오프: 조사 자료로 작성'},
+  {active:'sup',edge:['wri','sup'],log:'[writer → supervisor] 보고서 초안 반환'},
+  {active:'rev',edge:['sup','rev'],log:'[supervisor → reviewer] 핸드오프: 검토 위임'},
+  {active:'sup',edge:['rev','sup'],log:'[reviewer → supervisor] 검토 통과 → 사용자에게 종합 답변 ✅'},
+];
+let w3i=0;
+function drawW3(active,edge){
+  let svg='';
+  // base edges (supervisor to all)
+  Object.entries(w3pos).forEach(([id,p])=>{
+    if(id!=='sup'){svg+=`<line x1="${w3pos.sup.x}" y1="${w3pos.sup.y+22}" x2="${p.x}" y2="${p.y-22}" stroke="#4a443c" stroke-width="1.5"/>`;}
+  });
+  // active edge
+  if(edge){const a=w3pos[edge[0]],b=w3pos[edge[1]];
+    svg+=`<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="#e8c07d" stroke-width="3" marker-end="url(#a15)"/>`;}
+  // nodes
+  const meta={sup:['🧑‍💼','supervisor','#c2410c'],res:['🔬','researcher','#2f6b5e'],wri:['✍️','writer','#a8762f'],rev:['🔎','reviewer','#2f6b5e']};
+  Object.entries(w3pos).forEach(([id,p])=>{
+    const on=id===active;const m=meta[id];
+    svg+=`<circle cx="${p.x}" cy="${p.y}" r="26" fill="${m[2]}" opacity="${on?1:.55}" ${on?'stroke="#f4efe6" stroke-width="3"':''}/>`;
+    svg+=`<text x="${p.x}" y="${p.y-2}" font-size="14" text-anchor="middle">${m[0]}</text>`;
+    svg+=`<text x="${p.x}" y="${p.y+13}" font-size="7.5" fill="#fff" text-anchor="middle">${m[1]}</text>`;
+  });
+  svg+=`<defs><marker id="a15" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="#e8c07d"/></marker></defs>`;
+  document.getElementById('w3svg').innerHTML=svg;
+}
+function renderW3(){
+  const cur=w3i>0?w3seq[w3i-1]:{active:'sup',edge:null};
+  drawW3(cur.active,cur.edge);
+  document.getElementById('w3log').innerHTML=w3seq.slice(0,w3i).map(s=>s.log).join('<br>')||'▶ "한 단계씩"을 눌러 팀 조율을 보세요';
+  document.getElementById('w3cnt').textContent=`단계 ${w3i}/${w3seq.length}`;
+  document.getElementById('w3step').disabled=w3i>=w3seq.length;
+  document.getElementById('w3step').textContent=w3i>=w3seq.length?'✅ 완료':'▶ 한 단계씩';
+}
+document.getElementById('w3step').addEventListener('click',()=>{if(w3i<w3seq.length){w3i++;renderW3();}});
+document.getElementById('w3reset').addEventListener('click',()=>{w3i=0;renderW3();});
+renderW3();
+
+/* ===== W4: shared state board ===== */
+const w4items=[
+  {cls:'res',by:'🔬 researcher',txt:'조사 결과: 도입률 2배↑, 업무 30% 단축, 리스크는 환각·보안'},
+  {cls:'wri',by:'✍️ writer (위 결과를 읽고)',txt:'보고서 초안: "생성형 AI는 효과가 크나 리스크 관리 필요..."'},
+  {cls:'rev',by:'🔎 reviewer (위 초안을 읽고)',txt:'검토 의견: 근거 포함, 구조 양호 → 통과 ✅'},
+];
+let w4n=0;
+function renderW4(){
+  document.getElementById('w4items').innerHTML=w4items.map((it,idx)=>
+    `<div class="sb-item ${it.cls} ${idx<w4n?'show':''}"><span class="by">${it.by}</span>${it.txt}</div>`).join('')
+    || '<div style="color:#b3a995;text-align:center;padding:20px 0;font-size:12px">▶ "다음"을 눌러 결과가 쌓이는 걸 보세요</div>';
+  if(w4n===0)document.getElementById('w4items').innerHTML='<div style="color:#b3a995;text-align:center;padding:20px 0;font-size:12px">▶ "다음"을 눌러 결과가 쌓이는 걸 보세요</div>';
+  document.getElementById('w4step').disabled=w4n>=w4items.length;
+  document.getElementById('w4step').textContent=w4n>=w4items.length?'✅ 완료':'▶ 다음';
+}
+document.getElementById('w4step').addEventListener('click',()=>{if(w4n<w4items.length){w4n++;renderW4();}});
+document.getElementById('w4reset').addEventListener('click',()=>{w4n=0;renderW4();});
+renderW4();
+
+/* ===== W5: ladder ===== */
+const w5={
+  chain:'<b>🛣️ 체인</b> — 정해진 변환. 가장 가볍고 여기서 시작.',
+  agent:'<b>🧭 단일 에이전트</b> — 도구를 골라 쓰는 동적 판단이 필요할 때. 체인 천장에 닿으면 올림.',
+  graph:'<b>🕸️ 그래프 / HITL</b> — 흐름 보장(반복·분기·상태)·사람 개입이 필요할 때. 에이전트 천장에 닿으면 올림.',
+  multi:'<b>👥 멀티에이전트</b> — 한 에이전트가 도구 과다·전문성 희석으로 버거울 때. 가장 무거우니 정말 필요할 때만. 내부의 각 전문가는 그래프·HITL·RAG를 품을 수 있음(계층 중첩).'
+};
+function renderW5(k){
+  document.querySelectorAll('.ld-step').forEach(s=>s.classList.toggle('on',s.dataset.k===k));
+  document.getElementById('w5detail').innerHTML=w5[k];
+}
+document.querySelectorAll('.ld-step').forEach(s=>s.addEventListener('click',()=>renderW5(s.dataset.k)));
+renderW5('chain');
+</script>
+</body>
+</html>

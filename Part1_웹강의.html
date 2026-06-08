@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Part 1 · 개발 환경과 첫 LLM 호출</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Gowun+Dodum&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f4efe6;--card:#fbf8f2;--ink:#2b2723;--sub:#6f6457;--accent:#c2410c;
+    --accent-soft:#e9d5c4;--line:#e2d9c9;--teal:#2f6b5e;--gold:#a8762f;
+    --serif:'Gowun Batang',serif;--sans:'Gowun Dodum',sans-serif;--maxw:760px;
+    color-scheme:light only;
+  }
+  @media (prefers-color-scheme:dark){:root{--bg:#f4efe6;--card:#fbf8f2;--ink:#2b2723;}}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.85;font-size:17px;
+    -webkit-text-size-adjust:100%;
+    background-image:radial-gradient(circle at 20% 0%,rgba(194,65,12,.04),transparent 40%),
+                     radial-gradient(circle at 90% 100%,rgba(47,107,94,.04),transparent 45%);}
+  #progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:100;transition:width .1s linear;}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 22px;}
+  header.hero{max-width:var(--maxw);margin:0 auto;padding:88px 22px 40px;}
+  .eyebrow{color:var(--accent);font-size:13px;letter-spacing:.22em;font-weight:700;text-transform:uppercase;}
+  h1{font-family:var(--serif);font-weight:700;font-size:clamp(30px,6vw,46px);line-height:1.25;margin:14px 0 18px;letter-spacing:-.01em;}
+  .lead{font-size:18px;color:var(--sub);max-width:62ch;}
+  .hero-meta{margin-top:26px;display:flex;gap:10px;flex-wrap:wrap;}
+  .chip{font-size:12.5px;font-weight:700;letter-spacing:.04em;padding:6px 13px;border-radius:999px;background:var(--accent-soft);color:#8a3408;}
+  .chip.t{background:#d8e8e3;color:#225349;}
+  section{padding:54px 0 30px;border-top:1px solid var(--line);}
+  section:first-of-type{border-top:none;}
+  .sec-no{font-family:var(--serif);font-size:14px;color:var(--accent);font-weight:700;letter-spacing:.1em;}
+  h2{font-family:var(--serif);font-weight:700;font-size:clamp(23px,4.4vw,31px);margin:6px 0 20px;line-height:1.3;}
+  h3{font-family:var(--serif);font-weight:700;font-size:19px;margin:30px 0 10px;color:#3a342d;}
+  p{margin:0 0 16px;}
+  .sub{color:var(--sub);}
+  strong{color:var(--accent);font-weight:700;}
+  code{font-family:'Gowun Dodum',monospace;background:#efe7d8;color:#8a3408;padding:1.5px 7px;border-radius:6px;font-size:.92em;}
+  pre{background:#2b2723;color:#f4efe6;border-radius:12px;padding:16px 18px;overflow-x:auto;font-size:14px;line-height:1.7;margin:16px 0;}
+  pre code{background:none;color:inherit;padding:0;}
+  pre .k{color:#e0935f;}pre .s{color:#9ec79a;}pre .c{color:#8b8175;font-style:italic;}
+  .note{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px;padding:14px 18px;margin:18px 0;font-size:15.5px;color:var(--sub);}
+  .note b{color:var(--accent);}
+  .summary{background:#efe7d8;border-radius:12px;padding:18px 20px;margin:22px 0 4px;}
+  .summary .h{font-family:var(--serif);font-weight:700;color:var(--accent);font-size:15px;letter-spacing:.05em;margin-bottom:8px;}
+  .summary ol{margin:0;padding-left:20px;}
+  .summary li{margin:5px 0;font-size:15.5px;}
+  .widget{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;margin:26px 0;box-shadow:0 6px 22px rgba(80,60,30,.06);}
+  .widget .wlabel{display:inline-block;font-size:11.5px;font-weight:700;letter-spacing:.14em;color:#fff;background:var(--accent);padding:4px 11px;border-radius:999px;margin-bottom:16px;}
+  .wdesc{font-size:14.5px;margin-bottom:14px;color:var(--sub);}
+
+  /* W1: model picker */
+  .mp-row{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+  .mp{flex:1;min-width:120px;border:1.5px solid var(--line);background:#fff;border-radius:10px;padding:12px;cursor:pointer;transition:.18s;text-align:center;}
+  .mp.on{border-color:var(--accent);background:var(--accent);color:#fff;}
+  .mp .mn{font-family:var(--serif);font-weight:700;font-size:14px;}
+  .mp .mt{font-size:11px;opacity:.8;margin-top:2px;}
+  .bars{background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px;}
+  .barrow{display:flex;align-items:center;gap:10px;margin:9px 0;font-size:13px;}
+  .barrow .lbl{width:52px;color:var(--sub);font-weight:700;}
+  .bartrack{flex:1;height:12px;background:#efe7d8;border-radius:999px;overflow:hidden;}
+  .barfill{height:100%;border-radius:999px;transition:width .5s ease;}
+  .mp-note{margin-top:12px;font-size:13.5px;text-align:center;color:var(--sub);}
+
+  /* W2: message builder */
+  .msgpalette{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;}
+  .addbtn{border:1.5px dashed var(--line);background:#fff;border-radius:9px;padding:9px 13px;cursor:pointer;font-family:var(--sans);font-size:13.5px;font-weight:700;transition:.15s;}
+  .addbtn.sys{color:var(--teal);}.addbtn.hum{color:var(--accent);}.addbtn.clr{color:var(--sub);}
+  .addbtn:hover{background:#fdfaf4;}
+  .msgstack{display:flex;flex-direction:column;gap:8px;min-height:60px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px;}
+  .msgstack .empty{color:#b3a995;font-size:13.5px;text-align:center;padding:14px;}
+  .bubble{border-radius:10px;padding:10px 13px;font-size:13.5px;position:relative;}
+  .bubble.sys{background:#d8e8e3;border-left:4px solid var(--teal);}
+  .bubble.hum{background:var(--accent-soft);border-left:4px solid var(--accent);}
+  .bubble .role{font-weight:700;font-size:11px;letter-spacing:.06em;display:block;margin-bottom:2px;}
+  .bubble.sys .role{color:#225349;}.bubble.hum .role{color:#8a3408;}
+  .bubble .x{position:absolute;right:8px;top:8px;cursor:pointer;color:#a99;font-size:13px;}
+  .runline{margin-top:12px;display:flex;gap:10px;align-items:center;}
+  .runbtn{border:none;background:var(--accent);color:#fff;font-family:var(--sans);font-weight:700;font-size:13.5px;padding:9px 18px;border-radius:9px;cursor:pointer;}
+  .runbtn[disabled]{opacity:.4;cursor:not-allowed;}
+  .aibubble{margin-top:10px;background:#fff;border:1px solid var(--line);border-left:4px solid var(--gold);border-radius:10px;padding:10px 13px;font-size:13.5px;display:none;}
+  .aibubble .role{font-weight:700;font-size:11px;color:#7a5a2a;display:block;margin-bottom:2px;}
+
+  /* W3: temperature slider */
+  .slwrap{background:#fff;border:1px solid var(--line);border-radius:10px;padding:18px;}
+  .slhead{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;}
+  .slval{font-family:var(--serif);font-size:24px;font-weight:700;color:var(--accent);}
+  input[type=range]{width:100%;accent-color:var(--accent);height:6px;}
+  .slticks{display:flex;justify-content:space-between;font-size:11px;color:var(--sub);margin-top:4px;}
+  .slout{margin-top:16px;display:flex;flex-direction:column;gap:7px;}
+  .slout .o{background:#fdfaf4;border:1px solid var(--line);border-radius:8px;padding:9px 12px;font-size:13.5px;transition:.3s;}
+  .slmood{margin-top:12px;text-align:center;font-size:13.5px;font-weight:700;padding:9px;border-radius:8px;}
+
+  /* W4: multi-turn memory */
+  .mt-stage{background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px;}
+  .mt-toggle{display:flex;gap:8px;margin-bottom:14px;}
+  .mtbtn{flex:1;border:1.5px solid var(--line);background:#fff;border-radius:9px;padding:10px;cursor:pointer;font-family:var(--sans);font-weight:700;font-size:13.5px;color:var(--sub);transition:.15s;}
+  .mtbtn.on{border-color:var(--accent);background:var(--accent);color:#fff;}
+  .mt-list{display:flex;flex-direction:column;gap:7px;}
+  .mt-msg{border-radius:9px;padding:8px 12px;font-size:13px;}
+  .mt-msg.h{background:var(--accent-soft);}
+  .mt-msg.a{background:#d8e8e3;}
+  .mt-msg.dim{opacity:.3;text-decoration:line-through;}
+  .mt-result{margin-top:12px;padding:11px 13px;border-radius:9px;font-size:13.5px;}
+  .mt-result.ok{background:#d8e8e3;color:#225349;}
+  .mt-result.bad{background:#f3ddd2;color:#9a3a14;}
+
+  /* W5: method compare */
+  .mth-tabs{display:flex;gap:8px;margin-bottom:14px;}
+  .mthtab{flex:1;border:1.5px solid var(--line);background:#fff;border-radius:9px;padding:10px;cursor:pointer;text-align:center;font-family:var(--sans);font-weight:700;font-size:13.5px;color:var(--sub);transition:.15s;}
+  .mthtab.on{border-color:var(--accent);background:var(--accent);color:#fff;}
+  .mth-stage{background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px;min-height:120px;}
+  .mth-desc{font-size:13.5px;margin-bottom:12px;}
+  .mth-anim{font-family:monospace;font-size:13px;background:#2b2723;color:#9ec79a;border-radius:8px;padding:12px;min-height:48px;white-space:pre-wrap;}
+  .replaybtn{margin-top:10px;border:1px solid var(--line);background:#fdfaf4;border-radius:8px;padding:7px 14px;font-family:var(--sans);font-size:13px;font-weight:700;color:var(--sub);cursor:pointer;}
+
+  footer{max-width:var(--maxw);margin:0 auto;padding:30px 22px 80px;color:var(--sub);font-size:14px;border-top:1px solid var(--line);}
+  .next-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin:20px 0 0;}
+  .next-card .nl{font-size:12px;letter-spacing:.14em;color:var(--accent);font-weight:700;}
+  .next-card .nt{font-family:var(--serif);font-weight:700;font-size:18px;margin-top:4px;}
+  .reveal{opacity:0;transform:translateY(18px);transition:opacity .6s ease,transform .6s ease;}
+  .reveal.in{opacity:1;transform:none;}
+  @media(max-width:480px){body{font-size:16px;}.mp-row{flex-direction:column;}}
+</style>
+</head>
+<body>
+<div id="progress"></div>
+
+<header class="hero">
+  <div class="eyebrow">LangChain 에이전트 마스터 · Part 1</div>
+  <h1>개발 환경과<br>첫 LLM 호출</h1>
+  <p class="lead">지도 위에 디디는 첫 발임. LangChain의 기본 블록 ChatModel을 손에 쥐고, 대화의 단위인 메시지 세 종류를 익히며, 모델을 조율하는 인수와 실행 메서드까지 다룸.</p>
+  <div class="hero-meta">
+    <span class="chip">🟢 초급 · 1/5</span>
+    <span class="chip t">gemini-3-flash</span>
+    <span class="chip t">예상 30분</span>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- Section 1 -->
+  <section class="reveal">
+    <div class="sec-no">1-1</div>
+    <h2>ChatModel — LangChain의 심장</h2>
+    <p>LangChain에서 LLM을 다루는 기본 블록은 <strong>ChatModel</strong>임. Gemini를 쓸 때 이름은 <code>ChatGoogleGenerativeAI</code>이며 <code>langchain-google-genai</code> 패키지에 들어 있음.</p>
+    <pre><code><span class="k">from</span> langchain_google_genai <span class="k">import</span> ChatGoogleGenerativeAI
+
+llm = ChatGoogleGenerativeAI(model=<span class="s">"gemini-3-flash"</span>)</code></pre>
+    <p class="sub">ChatModel은 <strong>전화기</strong>와 같음. 전화기를 장만하는 일(<code>ChatGoogleGenerativeAI(...)</code>)과 전화를 거는 일(<code>.invoke()</code>)은 분리됨.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 어떤 모델을 쓸까</span>
+      <p class="wdesc">모델을 눌러 속도·비용·성능의 균형을 비교해봄. 무료 등급은 Flash 계열만 쓸 수 있음.</p>
+      <div class="mp-row" id="w1mp">
+        <div class="mp on" data-k="lite"><div class="mn">3.1 Flash-Lite</div><div class="mt">가장 가벼움</div></div>
+        <div class="mp" data-k="flash"><div class="mn">3 Flash</div><div class="mt">권장 기본값</div></div>
+        <div class="mp" data-k="pro"><div class="mn">3.1 Pro</div><div class="mt">유료 · 고난도</div></div>
+      </div>
+      <div class="bars" id="w1bars"></div>
+      <div class="mp-note" id="w1note"></div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;무료 등급 권장 기본값은 <code>gemini-3-flash</code>임. Pro는 2026년부터 유료라 무료 등급에서 못 씀. 모델 이름은 자주 바뀌니 실행이 안 되면 Google AI Studio에서 현재 모델명을 확인하면 됨.</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>기본 블록은 ChatModel, Gemini는 <code>ChatGoogleGenerativeAI</code>임.</li>
+      <li>블록 생성과 호출은 분리됨(전화기 장만 → 통화 버튼).</li>
+      <li>무료 등급 기본 모델은 <code>gemini-3-flash</code>임.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 2 -->
+  <section class="reveal">
+    <div class="sec-no">1-2</div>
+    <h2>메시지의 세 종류 — System · Human · AI</h2>
+    <p>ChatModel과 대화하는 단위는 문자열이 아니라 <strong>역할(role)이 붙은 메시지</strong>임. <code>SystemMessage</code>(규칙)·<code>HumanMessage</code>(질문)·<code>AIMessage</code>(답) 세 종류가 핵심임.</p>
+    <p class="sub">연극으로 보면 SystemMessage는 <strong>役 지시문</strong>(무대 뒤), HumanMessage는 <strong>관객의 질문</strong>, AIMessage는 <strong>배우의 대사</strong>임. 役 지시문이 바뀌면 같은 질문에도 답의 분위기가 완전히 달라짐.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 메시지 블록 조립</span>
+      <p class="wdesc">블록을 추가해 메시지 리스트를 만들고 "모델 호출"을 눌러봄. SystemMessage 유무에 따라 답이 어떻게 달라지는지 관찰함.</p>
+      <div class="msgpalette">
+        <button class="addbtn sys" data-add="sys">+ SystemMessage (친절한 도우미)</button>
+        <button class="addbtn sys" data-add="sys2">+ SystemMessage (퉁명한 평론가)</button>
+        <button class="addbtn hum" data-add="hum">+ HumanMessage (니트 어때?)</button>
+        <button class="addbtn clr" data-add="clr">초기화</button>
+      </div>
+      <div class="msgstack" id="w2stack"></div>
+      <div class="runline"><button class="runbtn" id="w2run" disabled>▶ 모델 호출</button>
+        <span class="sub" style="font-size:12.5px;">※ 실제 응답은 노트북에서, 여기선 동작 시뮬레이션임</span></div>
+      <div class="aibubble" id="w2ai"></div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;세 메시지 모두 <code>langchain_core.messages</code>에서 가져오며, <code>content</code>가 텍스트 인수임. 모델의 말투·역할·금지사항은 거의 전부 SystemMessage에서 정해짐.</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>대화 단위는 역할이 붙은 메시지임.</li>
+      <li>세 종류는 System(규칙)·Human(질문)·AI(답)임.</li>
+      <li>정체성·말투는 대부분 SystemMessage에서 결정됨.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 3 -->
+  <section class="reveal">
+    <div class="sec-no">1-4</div>
+    <h2>모델을 조율하는 손잡이 — temperature</h2>
+    <p>모델을 만들 때 넣는 인수는 행동을 조율하는 <strong>손잡이</strong>임. 가장 중요한 것이 <code>temperature</code> — 답변의 무작위성·창의성을 조절함.</p>
+    <p class="sub"><strong>요리사의 자유도</strong>에 비유됨. <code>0</code>은 레시피를 글자 그대로 지키는 요리사(매번 같은 결과), <code>1</code>은 기분대로 변주하는 요리사(매번 다른 결과)임.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · temperature 슬라이더</span>
+      <p class="wdesc">"리리마켓 가을 세일 슬로건"을 같은 값으로 3번 요청했다고 가정함. 슬라이더를 움직여 결과가 얼마나 흩어지는지 봄.</p>
+      <div class="slwrap">
+        <div class="slhead"><span style="font-size:13px;color:var(--sub);font-weight:700;">temperature</span><span class="slval" id="w3val">0.0</span></div>
+        <input type="range" id="w3slider" min="0" max="10" value="0" step="1">
+        <div class="slticks"><span>0 · 일관</span><span>0.5</span><span>1.0 · 다양</span></div>
+        <div class="slout" id="w3out"></div>
+        <div class="slmood" id="w3mood"></div>
+      </div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;추출·분류·JSON 생성은 <code>0</code>에 가깝게, 카피·아이디어는 <code>0.7~1.0</code>으로. 일부 최신 모델은 기본값이 1.0이라 무작정 0으로 낮추면 성능이 떨어질 수 있음.</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>인수는 모델 행동을 조율하는 손잡이임.</li>
+      <li><code>temperature</code>는 일관성↔다양성을 조절함.</li>
+      <li>추출·분류는 낮게, 창작은 높게가 기본 감각임.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 4 -->
+  <section class="reveal">
+    <div class="sec-no">1-3</div>
+    <h2>대화는 메시지의 리스트다</h2>
+    <p>여러 차례 이어지는 대화는 메시지를 <strong>리스트에 쌓아</strong> 표현함. 그리고 가장 중요한 사실 하나 — <strong>모델은 기억력이 없음.</strong> 매 호출은 독립적임.</p>
+    <p class="sub">"그거 말고"가 통하는 이유는 모델이 기억해서가 아니라, 우리가 이전 대화를 리스트에 담아 매번 다시 보내기 때문임.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 맥락을 넣을까 뺄까</span>
+      <p class="wdesc">"그거 말고 캐주얼한 걸로"라는 2번째 질문을 보낼 때, 이전 대화를 함께 보내는 경우와 빼는 경우를 비교함.</p>
+      <div class="mt-stage">
+        <div class="mt-toggle" id="w4toggle">
+          <button class="mtbtn on" data-k="with">이전 대화 포함</button>
+          <button class="mtbtn" data-k="without">마지막 질문만</button>
+        </div>
+        <div class="mt-list" id="w4list"></div>
+        <div class="mt-result" id="w4res"></div>
+      </div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;멀티턴에서는 모델의 답(<code>AIMessage</code>)도 빠짐없이 리스트에 추가해야 맥락이 유지됨. 이 번거로움을 자동화한 것이 나중의 메모리(Part 10)이며, 그 메모리는 LangGraph 런타임이 상태로 관리함.</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>멀티턴 대화는 메시지 리스트로 표현함.</li>
+      <li>모델은 기억력이 없고, 매번 리스트 전체를 다시 읽음.</li>
+      <li>맥락 유지는 이전 메시지를 계속 담아 보내기 때문에 가능함.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 5 -->
+  <section class="reveal">
+    <div class="sec-no">1-5</div>
+    <h2>호출 메서드 — invoke · stream · batch</h2>
+    <p>모델을 실행하는 핵심 메서드는 셋임. 모두 Runnable 규격이라 <strong>모든 LangChain 블록이 동일하게</strong> 가지고 있음.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 세 메서드의 출력 방식</span>
+      <p class="wdesc">탭을 눌러 각 메서드가 결과를 어떻게 내보내는지 애니메이션으로 비교함.</p>
+      <div class="mth-tabs" id="w5tabs">
+        <div class="mthtab on" data-k="invoke">.invoke()</div>
+        <div class="mthtab" data-k="stream">.stream()</div>
+        <div class="mthtab" data-k="batch">.batch()</div>
+      </div>
+      <div class="mth-stage">
+        <div class="mth-desc" id="w5desc"></div>
+        <div class="mth-anim" id="w5anim"></div>
+        <button class="replaybtn" id="w5replay">↻ 다시 보기</button>
+      </div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;세 메서드 모두 비동기 버전(<code>.ainvoke()</code> 등)이 있음. <code>.invoke()</code>가 돌려주는 것은 문자열이 아니라 <code>AIMessage</code> 객체이며, 본문은 <code>.content</code>, 토큰 사용량은 <code>.usage_metadata</code>에 있음.</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>핵심 메서드는 invoke(한 번에)·stream(실시간)·batch(대량)임.</li>
+      <li><code>.invoke()</code>는 AIMessage 객체를 돌려주며 본문은 <code>.content</code>임.</li>
+      <li>챗봇 UI는 stream, 대량 처리는 batch가 정석임.</li>
+    </ol></div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="next-card">
+    <div class="nl">NEXT · PART 2</div>
+    <div class="nt">프롬프트 템플릿</div>
+    <p style="margin-top:8px;">매번 문장을 손으로 쓰는 대신, 빈칸이 있는 PromptTemplate으로 질문을 찍어내는 법을 배움. LCEL 파이프(|)로 가는 직전 단계임.</p>
+  </div>
+  <p style="margin-top:24px;">LangChain 에이전트 마스터 커리큘럼 · Part 1 / 18 · LangChain 1.0 기준</p>
+</footer>
+
+<script>
+const prog=document.getElementById('progress');
+addEventListener('scroll',()=>{const h=document.documentElement;prog.style.width=((h.scrollTop)/(h.scrollHeight-h.clientHeight)*100)+'%';});
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('in');}),{threshold:.12});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+
+/* ===== W1: model picker ===== */
+const w1={
+  lite:{speed:95,cost:96,power:55,note:'가장 빠르고 저렴함. 단순 분류·대량 처리에 적합함. (무료 등급)'},
+  flash:{speed:80,cost:82,power:78,note:'속도·비용·성능 균형이 좋아 대부분의 작업에 권장됨. (무료 등급 기본값)'},
+  pro:{speed:45,cost:30,power:97,note:'복잡한 다단계 추론에 강함. 다만 2026년부터 유료라 무료 등급에선 못 씀.'}
+};
+function bar(lbl,val,color){return `<div class="barrow"><span class="lbl">${lbl}</span><div class="bartrack"><div class="barfill" style="width:${val}%;background:${color}"></div></div></div>`;}
+function renderW1(k){
+  const d=w1[k];
+  document.getElementById('w1bars').innerHTML=
+    bar('속도',d.speed,'var(--teal)')+bar('저렴함',d.cost,'var(--gold)')+bar('성능',d.power,'var(--accent)');
+  document.getElementById('w1note').textContent=d.note;
+}
+document.querySelectorAll('#w1mp .mp').forEach(m=>m.addEventListener('click',()=>{
+  document.querySelectorAll('#w1mp .mp').forEach(x=>x.classList.remove('on'));m.classList.add('on');renderW1(m.dataset.k);}));
+renderW1('lite');
+
+/* ===== W2: message builder ===== */
+let w2msgs=[];
+const w2defs={
+  sys:{role:'sys',label:'SystemMessage',text:'너는 다정하고 친절한 쇼핑 도우미야.'},
+  sys2:{role:'sys',label:'SystemMessage',text:'너는 매우 퉁명스럽고 까칠한 패션 평론가야.'},
+  hum:{role:'hum',label:'HumanMessage',text:'베이지 니트 어때?'}
+};
+function renderW2(){
+  const s=document.getElementById('w2stack');
+  if(!w2msgs.length){s.innerHTML='<div class="empty">블록을 추가해 메시지 리스트를 만들어 보세요</div>';}
+  else{s.innerHTML=w2msgs.map((m,i)=>
+    `<div class="bubble ${m.role}"><span class="role">${m.label}</span>${m.text}<span class="x" data-i="${i}">✕</span></div>`).join('');}
+  s.querySelectorAll('.x').forEach(x=>x.addEventListener('click',()=>{w2msgs.splice(+x.dataset.i,1);renderW2();}));
+  const hasHum=w2msgs.some(m=>m.role==='hum');
+  document.getElementById('w2run').disabled=!hasHum;
+  document.getElementById('w2ai').style.display='none';
+}
+document.querySelectorAll('.msgpalette .addbtn').forEach(b=>b.addEventListener('click',()=>{
+  const a=b.dataset.add;
+  if(a==='clr'){w2msgs=[];}
+  else{w2msgs.push({...w2defs[a]});}
+  renderW2();
+}));
+document.getElementById('w2run').addEventListener('click',()=>{
+  const sys=w2msgs.find(m=>m.role==='sys');
+  let answer;
+  if(!sys){answer='(역할 미설정) 베이지 니트는 활용도가 높은 무난한 아이템입니다.';}
+  else if(sys.text.includes('퉁명')){answer='흠... 베이지 니트요? 너무 흔하고 밋밋하네요. 다들 입는 거라 개성은 없습니다.';}
+  else{answer='베이지 니트 정말 좋은 선택이에요! 부드러운 톤이라 어디에나 잘 어울린답니다 😊';}
+  const ai=document.getElementById('w2ai');
+  ai.style.display='block';
+  ai.innerHTML=`<span class="role">AIMessage</span>${answer}`;
+});
+renderW2();
+
+/* ===== W3: temperature ===== */
+const w3sets=[
+  ['🍂 리리마켓 가을 세일, 지금 시작합니다','🍂 리리마켓 가을 세일, 지금 시작합니다','🍂 리리마켓 가을 세일, 지금 시작합니다'], // 0.0
+  ['🍂 가을을 입다, 리리마켓 세일','🍂 리리마켓 가을 세일 오픈','🍂 가을 옷장 채우기, 리리마켓'],
+  ['단풍보다 먼저 물드는 리리마켓','이 가을, 당신의 룩을 리리마켓에서','선선한 바람과 함께 온 세일'],
+  ['🍁 옷장에 가을 한 스푼, 리리마켓','바스락, 가을이 세일을 데려왔어요','가을밤을 닮은 컬러, 지금 50%'],
+  ['낙엽이 지기 전에 담아요 🛍️','가을 감성 정밀 타격 세일','당신만 모르는 가을 잇템 大방출'] // 1.0
+];
+const w3moods=[
+  ['😐 거의 동일 — 항상 가장 안전한 답',' #efe7d8','#7a6a52'],
+  ['🙂 약간의 변주',' #ece3d2','#7a6a52'],
+  ['😊 눈에 띄게 다양',' #e7ddc9','#7a5a2a'],
+  ['😃 창의적·다채로움',' #ecd9c4','#8a3408'],
+  ['🤪 매번 완전히 다름 — 예측 불가',' #f0d3bd','#8a3408']
+];
+const sl=document.getElementById('w3slider');
+function renderW3(){
+  const lvl=Math.round(+sl.value/2.5); // 0..4
+  const t=(+sl.value/10).toFixed(1);
+  document.getElementById('w3val').textContent=t;
+  document.getElementById('w3out').innerHTML=w3sets[lvl].map((s,i)=>`<div class="o">${i+1}. ${s}</div>`).join('');
+  const m=w3moods[lvl];
+  const mood=document.getElementById('w3mood');
+  mood.textContent=m[0];mood.style.background=m[1];mood.style.color=m[2];
+}
+sl.addEventListener('input',renderW3);renderW3();
+
+/* ===== W4: multi-turn ===== */
+const w4base=[
+  {r:'h',t:'🙋 니트 하나 추천해줘'},
+  {r:'a',t:'🤖 베이지 케이블 니트는 어떠세요?'},
+  {r:'h',t:'🙋 그거 말고 좀 더 캐주얼한 걸로'}
+];
+function renderW4(mode){
+  const list=document.getElementById('w4list');
+  const dimFirst = mode==='without';
+  list.innerHTML=w4base.map((m,i)=>{
+    const dim = dimFirst && i<2 ? ' dim':'';
+    return `<div class="mt-msg ${m.r}${dim}">${m.t}</div>`;
+  }).join('');
+  const res=document.getElementById('w4res');
+  if(mode==='with'){
+    res.className='mt-result ok';
+    res.innerHTML='🤖 <b>오버사이즈 라운드넥 니트는 어떠세요?</b> → 맥락이 이어져 "캐주얼한 다른 니트"를 정확히 추천함.';
+  }else{
+    res.className='mt-result bad';
+    res.innerHTML='🤖 <b>"무엇을 말씀하시는 걸까요?"</b> → "그거"가 뭔지 몰라 엉뚱한 답이 나옴. 모델은 기억이 없기 때문임.';
+  }
+}
+document.querySelectorAll('#w4toggle .mtbtn').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('#w4toggle .mtbtn').forEach(x=>x.classList.remove('on'));b.classList.add('on');renderW4(b.dataset.k);}));
+renderW4('with');
+
+/* ===== W5: method compare ===== */
+const w5={
+  invoke:{desc:'<b>택배</b> — 주문하면 완성된 상자가 한 번에 도착함. 응답 전체가 한꺼번에 옴.',
+    run:(el)=>{el.textContent='요청 전송...';setTimeout(()=>{el.textContent='res = AIMessage("리리마켓에 오신 것을 환영합니다!")\\n→ 완성된 답 한 번에 도착 ✅';},700);}},
+  stream:{desc:'<b>라이브 자막</b> — 말이 끝나길 기다리지 않고 나오는 대로 글자가 흘러나옴. 챗봇 UI의 정석임.',
+    run:(el)=>{const full='리리마켓에 오신 것을 환영합니다!';el.textContent='';let i=0;
+      const tick=()=>{if(i<=full.length){el.textContent=full.slice(0,i)+'▍';i++;setTimeout(tick,70);}else{el.textContent=full+' ✅';}};tick();}},
+  batch:{desc:'<b>공동구매</b> — 주문 여러 개를 묶어 한 번에 처리함. 문서 대량 처리에 효율적임.',
+    run:(el)=>{el.textContent='3개 요청 동시 전송...';setTimeout(()=>{el.textContent='[고양이 소개, 강아지 소개, 앵무새 소개]\\n→ 3개 답이 한 묶음으로 도착 ✅';},800);}}
+};
+let w5cur='invoke';
+function renderW5(k){
+  w5cur=k;
+  document.getElementById('w5desc').innerHTML=w5[k].desc;
+  w5[k].run(document.getElementById('w5anim'));
+}
+document.querySelectorAll('#w5tabs .mthtab').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('#w5tabs .mthtab').forEach(x=>x.classList.remove('on'));t.classList.add('on');renderW5(t.dataset.k);}));
+document.getElementById('w5replay').addEventListener('click',()=>w5[w5cur].run(document.getElementById('w5anim')));
+renderW5('invoke');
+</script>
+</body>
+</html>

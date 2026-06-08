@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Part 3 · LCEL 파이프(|)의 원리</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Gowun+Dodum&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f4efe6;--card:#fbf8f2;--ink:#2b2723;--sub:#6f6457;--accent:#c2410c;
+    --accent-soft:#e9d5c4;--line:#e2d9c9;--teal:#2f6b5e;--gold:#a8762f;
+    --serif:'Gowun Batang',serif;--sans:'Gowun Dodum',sans-serif;--maxw:760px;color-scheme:light only;
+  }
+  @media (prefers-color-scheme:dark){:root{--bg:#f4efe6;--card:#fbf8f2;--ink:#2b2723;}}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.85;font-size:17px;-webkit-text-size-adjust:100%;
+    background-image:radial-gradient(circle at 20% 0%,rgba(194,65,12,.04),transparent 40%),radial-gradient(circle at 90% 100%,rgba(47,107,94,.04),transparent 45%);}
+  #progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:100;transition:width .1s linear;}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 22px;}
+  header.hero{max-width:var(--maxw);margin:0 auto;padding:88px 22px 40px;}
+  .eyebrow{color:var(--accent);font-size:13px;letter-spacing:.22em;font-weight:700;text-transform:uppercase;}
+  h1{font-family:var(--serif);font-weight:700;font-size:clamp(30px,6vw,46px);line-height:1.25;margin:14px 0 18px;letter-spacing:-.01em;}
+  .lead{font-size:18px;color:var(--sub);max-width:62ch;}
+  .hero-meta{margin-top:26px;display:flex;gap:10px;flex-wrap:wrap;}
+  .chip{font-size:12.5px;font-weight:700;letter-spacing:.04em;padding:6px 13px;border-radius:999px;background:var(--accent-soft);color:#8a3408;}
+  .chip.t{background:#d8e8e3;color:#225349;}
+  section{padding:54px 0 30px;border-top:1px solid var(--line);}
+  section:first-of-type{border-top:none;}
+  .sec-no{font-family:var(--serif);font-size:14px;color:var(--accent);font-weight:700;letter-spacing:.1em;}
+  h2{font-family:var(--serif);font-weight:700;font-size:clamp(23px,4.4vw,31px);margin:6px 0 20px;line-height:1.3;}
+  p{margin:0 0 16px;}
+  .sub{color:var(--sub);}
+  strong{color:var(--accent);font-weight:700;}
+  code{font-family:'Gowun Dodum',monospace;background:#efe7d8;color:#8a3408;padding:1.5px 7px;border-radius:6px;font-size:.92em;}
+  pre{background:#2b2723;color:#f4efe6;border-radius:12px;padding:16px 18px;overflow-x:auto;font-size:14px;line-height:1.7;margin:16px 0;}
+  pre code{background:none;color:inherit;padding:0;}
+  pre .k{color:#e0935f;}pre .s{color:#9ec79a;}pre .c{color:#8b8175;font-style:italic;}pre .p{color:#e8c07d;font-weight:700;}
+  .note{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px;padding:14px 18px;margin:18px 0;font-size:15.5px;color:var(--sub);}
+  .note b{color:var(--accent);}
+  .summary{background:#efe7d8;border-radius:12px;padding:18px 20px;margin:22px 0 4px;}
+  .summary .h{font-family:var(--serif);font-weight:700;color:var(--accent);font-size:15px;letter-spacing:.05em;margin-bottom:8px;}
+  .summary ol{margin:0;padding-left:20px;}.summary li{margin:5px 0;font-size:15.5px;}
+  .widget{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;margin:26px 0;box-shadow:0 6px 22px rgba(80,60,30,.06);}
+  .widget .wlabel{display:inline-block;font-size:11.5px;font-weight:700;letter-spacing:.14em;color:#fff;background:var(--accent);padding:4px 11px;border-radius:999px;margin-bottom:16px;}
+  .wdesc{font-size:14.5px;margin-bottom:14px;color:var(--sub);}
+  .btn{border:none;background:var(--accent);color:#fff;font-family:var(--sans);font-weight:700;font-size:13.5px;padding:9px 18px;border-radius:9px;cursor:pointer;}
+  .btn[disabled]{opacity:.4;cursor:not-allowed;}
+  .btn.ghost{background:#fdfaf4;border:1px solid var(--line);color:var(--sub);}
+
+  /* W1 conveyor belt */
+  .belt{position:relative;background:#fff;border:1px solid var(--line);border-radius:12px;padding:24px 14px;overflow:hidden;}
+  .belt-track{display:flex;align-items:center;justify-content:space-between;gap:6px;position:relative;z-index:2;}
+  .station{flex:1;text-align:center;}
+  .box{border-radius:11px;padding:14px 8px;border:2px solid var(--line);background:#fdfaf4;transition:.3s;}
+  .box.lit{border-color:var(--accent);background:var(--accent-soft);box-shadow:0 4px 14px rgba(194,65,12,.18);transform:translateY(-3px);}
+  .box .bicon{font-size:22px;}
+  .box .bname{font-family:var(--serif);font-weight:700;font-size:13px;margin-top:3px;}
+  .box .btype{font-size:10px;color:var(--sub);}
+  .pipe{flex:none;width:24px;text-align:center;color:var(--gold);font-weight:700;font-size:20px;}
+  .packet{position:absolute;top:50%;left:0;transform:transl(-50%,-50%);font-size:11px;background:var(--teal);color:#fff;padding:3px 9px;border-radius:999px;white-space:nowrap;z-index:3;opacity:0;transition:left .8s ease,opacity .3s;font-weight:700;}
+  .belt-stage{margin-top:16px;background:#2b2723;color:#9ec79a;border-radius:10px;padding:12px 14px;font-family:monospace;font-size:13px;min-height:44px;white-space:pre-wrap;}
+  .belt-ctl{margin-top:14px;display:flex;gap:8px;align-items:center;}
+
+  /* W2 method on chain */
+  .m2-tabs{display:flex;gap:8px;margin-bottom:14px;}
+  .m2tab{flex:1;border:1.5px solid var(--line);background:#fff;border-radius:9px;padding:10px;cursor:pointer;text-align:center;font-family:var(--sans);font-weight:700;font-size:13.5px;color:var(--sub);transition:.15s;}
+  .m2tab.on{border-color:var(--accent);background:var(--accent);color:#fff;}
+  .m2-stage{background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px;}
+  .m2-desc{font-size:13.5px;margin-bottom:10px;}
+  .m2-anim{font-family:monospace;font-size:13px;background:#2b2723;color:#9ec79a;border-radius:8px;padding:12px;min-height:60px;white-space:pre-wrap;}
+
+  /* W3 parallel */
+  .par{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px;}
+  .par-in{text-align:center;margin-bottom:6px;}
+  .par-in .pill{display:inline-block;background:var(--teal);color:#fff;padding:6px 16px;border-radius:999px;font-weight:700;font-size:13.5px;}
+  .par-split{display:flex;justify-content:center;gap:40px;margin:4px 0;color:var(--gold);font-size:18px;}
+  .par-branches{display:flex;gap:10px;}
+  .par-branch{flex:1;border:1.5px solid var(--line);border-radius:10px;padding:12px;text-align:center;font-size:12.5px;transition:.3s;background:#fdfaf4;}
+  .par-branch.run{border-color:var(--accent);background:var(--accent-soft);}
+  .par-branch .bk{font-weight:700;color:#8a3408;font-size:11px;}
+  .par-branch .bv{margin-top:6px;min-height:34px;font-family:monospace;}
+  .par-merge{margin-top:12px;background:#efe7d8;border-radius:9px;padding:11px 13px;font-family:monospace;font-size:12.5px;}
+
+  /* W4 lambda adapter */
+  .la-flow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:center;background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px 12px;}
+  .la-node{border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;font-size:12px;text-align:center;background:#fdfaf4;min-width:74px;}
+  .la-node.fn{border-style:dashed;border-color:var(--gold);background:#fbf3e6;}
+  .la-node.fn.wrapped{border-style:solid;border-color:var(--teal);background:#d8e8e3;}
+  .la-node .nn{font-family:monospace;font-weight:700;font-size:11.5px;}
+  .la-node .nt{font-size:10px;color:var(--sub);margin-top:2px;}
+  .la-arrow{color:var(--gold);font-weight:700;}
+  .la-out{margin-top:14px;background:#2b2723;color:#9ec79a;border-radius:9px;padding:11px 13px;font-family:monospace;font-size:12.5px;min-height:24px;}
+
+  /* W5 quiz */
+  .q5{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px;}
+  .q5q{font-family:var(--serif);font-weight:700;font-size:15.5px;margin-bottom:14px;}
+  .q5opts{display:flex;flex-direction:column;gap:8px;}
+  .q5opt{border:1.5px solid var(--line);background:#fdfaf4;border-radius:10px;padding:11px 14px;cursor:pointer;font-size:13.5px;font-family:monospace;transition:.15s;}
+  .q5opt.correct{border-color:var(--teal);background:#d8e8e3;color:#225349;font-weight:700;}
+  .q5opt.wrong{border-color:#c98a6e;background:#f3ddd2;color:#9a3a14;}
+  .q5fb{margin-top:12px;font-size:13.5px;min-height:18px;color:var(--sub);}
+  .q5nav{margin-top:12px;text-align:right;}
+
+  footer{max-width:var(--maxw);margin:0 auto;padding:30px 22px 80px;color:var(--sub);font-size:14px;border-top:1px solid var(--line);}
+  .next-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin:20px 0 0;}
+  .next-card .nl{font-size:12px;letter-spacing:.14em;color:var(--accent);font-weight:700;}
+  .next-card .nt{font-family:var(--serif);font-weight:700;font-size:18px;margin-top:4px;}
+  .reveal{opacity:0;transform:translateY(18px);transition:opacity .6s ease,transform .6s ease;}
+  .reveal.in{opacity:1;transform:none;}
+  @media(max-width:480px){body{font-size:16px;}.par-branches{flex-direction:column;}.box .btype{display:none;}}
+</style>
+</head>
+<body>
+<div id="progress"></div>
+
+<header class="hero">
+  <div class="eyebrow">LangChain 에이전트 마스터 · Part 3</div>
+  <h1>LCEL 파이프(|)의 원리</h1>
+  <p class="lead">지금까지 만든 두 블록(프롬프트·모델)은 모두 <code>.invoke()</code>를 가졌음. 그 공통점이 사실 약속(Runnable)이었음을 밝히고, 그 덕분에 블록을 파이프 하나로 줄줄이 잇는 법을 배움. 이 <code>|</code> 한 글자가 LangChain의 심장임.</p>
+  <div class="hero-meta">
+    <span class="chip">🟢 초급 · 3/5</span>
+    <span class="chip t">LCEL · 정점</span>
+    <span class="chip t">예상 40분</span>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- Section 1: Runnable + 파이프 + 컨베이어 -->
+  <section class="reveal">
+    <div class="sec-no">3-1 · 3-2</div>
+    <h2>Runnable과 파이프 — 컨베이어 벨트</h2>
+    <p>LangChain의 거의 모든 부품은 <strong>Runnable</strong>이라는 공통 약속을 따름 — "나는 입력을 받아 출력을 내며 <code>.invoke / .stream / .batch</code>를 가진다." 표준 규격의 콘센트처럼, 같은 플러그를 쓰니 자유롭게 연결됨.</p>
+    <p>그 연결 문법이 파이프 <code>|</code>임. 왼쪽 블록의 출력을 오른쪽 블록의 입력으로 흘려보냄 — <strong>컨베이어 벨트</strong>처럼.</p>
+    <pre><code>chain = prompt <span class="p">|</span> model
+
+chain.invoke({<span class="s">"product"</span>: <span class="s">"베이지 니트"</span>})</code></pre>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 데이터 흐름 애니메이션</span>
+      <p class="wdesc">"실행"을 누르면 입력이 벨트를 따라 각 공정을 통과하며 변환되는 과정을 단계별로 봄.</p>
+      <div class="belt">
+        <div class="belt-track" id="w1track">
+          <div class="station"><div class="box" data-s="0"><div class="bicon">📥</div><div class="bname">입력</div><div class="btype">dict</div></div></div>
+          <div class="pipe">|</div>
+          <div class="station"><div class="box" data-s="1"><div class="bicon">📝</div><div class="bname">prompt</div><div class="btype">PromptTemplate</div></div></div>
+          <div class="pipe">|</div>
+          <div class="station"><div class="box" data-s="2"><div class="bicon">🤖</div><div class="bname">model</div><div class="btype">ChatModel</div></div></div>
+          <div class="pipe">→</div>
+          <div class="station"><div class="box" data-s="3"><div class="bicon">📤</div><div class="bname">출력</div><div class="btype">AIMessage</div></div></div>
+        </div>
+        <div class="packet" id="w1packet"></div>
+      </div>
+      <div class="belt-stage" id="w1stage">▶ "실행"을 눌러 데이터가 흐르는 과정을 보세요.</div>
+      <div class="belt-ctl">
+        <button class="btn" id="w1run">▶ 실행</button>
+        <button class="btn ghost" id="w1reset">↻ 초기화</button>
+      </div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;파이프로 이은 결과(<code>chain</code>)도 다시 Runnable임. 그래서 더 큰 체인의 한 블록으로 끼울 수 있음 — "조립한 것이 다시 부품이 되는" 성질이 복잡한 파이프라인을 단순하게 유지함.</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>Runnable은 모든 블록이 공유하는 약속(<code>.invoke/.stream/.batch</code>)임.</li>
+      <li>파이프 <code>|</code>는 왼쪽 출력을 오른쪽 입력으로 흘려보냄.</li>
+      <li>이은 체인도 다시 Runnable이라 더 큰 체인에 끼울 수 있음.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 2: invoke/stream/batch on chain -->
+  <section class="reveal">
+    <div class="sec-no">3-3</div>
+    <h2>체인 전체에 invoke · stream · batch</h2>
+    <p>체인도 다시 Runnable이라, 개별 블록에 쓰던 실행 메서드가 <strong>조립된 파이프라인 전체</strong>에 그대로 작동함.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 같은 체인, 세 가지 실행</span>
+      <p class="wdesc"><code>chain = prompt | model</code>에 세 메서드를 각각 걸면 결과가 어떻게 도착하는지 비교함.</p>
+      <div class="m2-tabs" id="w2tabs">
+        <div class="m2tab on" data-k="invoke">.invoke()</div>
+        <div class="m2tab" data-k="stream">.stream()</div>
+        <div class="m2tab" data-k="batch">.batch()</div>
+      </div>
+      <div class="m2-stage">
+        <div class="m2-desc" id="w2desc"></div>
+        <div class="m2-anim" id="w2anim"></div>
+        <button class="btn ghost" id="w2replay" style="margin-top:10px;">↻ 다시 보기</button>
+      </div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;<code>.stream()</code>은 스트리밍을 지원하는 마지막 블록(모델)까지 자동 전파됨. 비동기 버전(<code>.ainvoke</code> 등)도 체인 전체에 동일하게 적용됨.</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>체인 전체가 Runnable이라 실행 메서드가 통째로 적용됨.</li>
+      <li><code>.stream()</code>은 모델부터 조각을 실시간으로 흘려보냄.</li>
+      <li>챗봇은 stream, 대량 처리는 batch가 정석임.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 3: Parallel/Passthrough -->
+  <section class="reveal">
+    <div class="sec-no">3-4</div>
+    <h2>Parallel · Passthrough — 흐름을 나누기</h2>
+    <p>체인은 한 줄로만 흐르지 않음. <code>RunnablePassthrough</code>는 입력을 가공 없이 그대로 통과시키고, <code>RunnableParallel</code>은 여러 블록을 <strong>동시에</strong> 실행해 결과를 딕셔너리로 모음.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 병렬 분배기</span>
+      <p class="wdesc">한 입력 <code>"울 코트"</code>를 세 갈래로 동시에 처리함. "병렬 실행"을 눌러 각 갈래가 한꺼번에 작동하는 걸 봄.</p>
+      <div class="par">
+        <div class="par-in"><span class="pill">입력: "울 코트"</span></div>
+        <div class="par-split"><span>↙</span><span>↓</span><span>↘</span></div>
+        <div class="par-branches" id="w3branches">
+          <div class="par-branch" data-k="original"><div class="bk">original<br>(Passthrough)</div><div class="bv" id="w3-original"></div></div>
+          <div class="par-branch" data-k="emotional"><div class="bk">감성<br>(체인)</div><div class="bv" id="w3-emotional"></div></div>
+          <div class="par-branch" data-k="practical"><div class="bk">실용<br>(체인)</div><div class="bv" id="w3-practical"></div></div>
+        </div>
+        <div class="par-merge" id="w3merge">→ 결과를 기다리는 중...</div>
+        <button class="btn" id="w3run" style="margin-top:12px;">▶ 병렬 실행</button>
+      </div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;<code>RunnablePassthrough.assign(...)</code>은 "기존 입력 유지 + 새 키 추가"임. RAG 체인에서 "원래 질문 + 검색된 문서"를 함께 넘길 때 자주 등장함(Part 8).</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li><code>RunnablePassthrough</code>는 입력을 그대로 통과시킴.</li>
+      <li><code>RunnableParallel</code>은 여러 블록을 병렬 실행해 딕셔너리로 모음.</li>
+      <li>이 둘은 RAG 체인(질문 그대로 + 동시에 문서 검색)의 핵심 패턴임.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 4: RunnableLambda -->
+  <section class="reveal">
+    <div class="sec-no">3-5</div>
+    <h2>RunnableLambda — 내 함수를 체인에</h2>
+    <p>체인 중간에 내가 만든 평범한 파이썬 함수를 끼우고 싶을 때 <code>RunnableLambda</code>가 그 함수를 Runnable로 감싸 줌. 파이프 안의 함수·람다는 자동으로 변환되기도 함.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 변환 어댑터</span>
+      <p class="wdesc">내 함수 <code>shout</code>는 원래 LangChain 규격이 아님. "어댑터 끼우기"를 누르면 Runnable로 감싸져 파이프에 꽂힘.</p>
+      <div class="la-flow" id="w4flow">
+        <div class="la-node"><div class="nn">"hello"</div><div class="nt">입력</div></div>
+        <span class="la-arrow">|</span>
+        <div class="la-node fn" id="w4fn"><div class="nn">shout()</div><div class="nt" id="w4fntype">일반 함수 (규격 ✗)</div></div>
+        <span class="la-arrow">→</span>
+        <div class="la-node"><div class="nn">?</div><div class="nt">출력</div></div>
+      </div>
+      <div class="la-out" id="w4out">어댑터를 끼우기 전에는 파이프에 꽂을 수 없음.</div>
+      <div style="margin-top:12px;display:flex;gap:8px;">
+        <button class="btn" id="w4wrap">🔌 어댑터 끼우기 (RunnableLambda)</button>
+        <button class="btn ghost" id="w4reset">↻ 초기화</button>
+      </div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;다음 파트의 출력 파서(<code>StrOutputParser</code> 등)도 사실 "모델 출력을 가공하는 Runnable"의 잘 만들어진 버전임. 간단한 가공은 RunnableLambda, 정형 파싱은 전용 파서를 씀.</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li><code>RunnableLambda</code>는 내 일반 함수를 Runnable로 감쌈.</li>
+      <li>파이프 안의 함수·람다는 자동으로 변환됨.</li>
+      <li>간단한 후처리에 유용, 정형 파싱은 전용 파서를 씀.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 5: quiz -->
+  <section class="reveal">
+    <div class="sec-no">자가 점검</div>
+    <h2>스스로 점검 — 파이프 읽기</h2>
+    <p>LCEL 체인을 보고 "데이터가 어떤 순서로, 어떤 타입으로 흐르는가"를 머릿속에 그릴 수 있어야 함. 아래 문제로 점검해봄.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 흐름 퀴즈</span>
+      <div class="q5">
+        <div class="q5q" id="q5q"></div>
+        <div class="q5opts" id="q5opts"></div>
+        <div class="q5fb" id="q5fb"></div>
+        <div class="q5nav"><button class="btn" id="q5next" disabled>다음 →</button></div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="next-card">
+    <div class="nl">NEXT · PART 4</div>
+    <div class="nt">출력 파서 (Output Parser)</div>
+    <p style="margin-top:8px;">모델 출력은 아직 <code>AIMessage</code> 객체임. 깔끔한 문자열·구조화 데이터(JSON 등)로 받는 마지막 블록을 배움. <code>프롬프트 | 모델 | 파서</code> 3단 체인이 완성됨.</p>
+  </div>
+  <p style="margin-top:24px;">LangChain 에이전트 마스터 커리큘럼 · Part 3 / 18 · LangChain 1.0 기준</p>
+</footer>
+
+<script>
+const prog=document.getElementById('progress');
+addEventListener('scroll',()=>{const h=document.documentElement;prog.style.width=((h.scrollTop)/(h.scrollHeight-h.clientHeight)*100)+'%';});
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('in');}),{threshold:.12});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+
+/* ===== W1: conveyor belt ===== */
+const w1steps=[
+  {box:0,pos:6,packet:'{product:"베이지 니트"}',log:'1) 입력 dict가 벨트에 올라감'},
+  {box:1,pos:33,packet:'메시지 리스트',log:'2) prompt가 빈칸을 채워 메시지 리스트 생성\\n   [Human: "베이지 니트의 홍보 문구를 한 줄 써줘"]'},
+  {box:2,pos:64,packet:'AIMessage',log:'3) 그 리스트가 model로 흘러 들어가 호출됨'},
+  {box:3,pos:92,packet:'완성!',log:'4) AIMessage 출력\\n   "포근함을 입다 — 베이지 니트" ✅'},
+];
+const w1packet=document.getElementById('w1packet');
+function w1clear(){document.querySelectorAll('#w1track .box').forEach(b=>b.classList.remove('lit'));}
+let w1timer=null;
+function w1play(){
+  w1stop();w1clear();
+  const stage=document.getElementById('w1stage');stage.textContent='';
+  w1packet.style.opacity='1';
+  let i=0;
+  const tick=()=>{
+    if(i>=w1steps.length){w1packet.style.opacity='0';return;}
+    const s=w1steps[i];w1clear();
+    document.querySelector(`#w1track .box[data-s="${s.box}"]`).classList.add('lit');
+    w1packet.style.left=s.pos+'%';w1packet.textContent=s.packet;
+    stage.textContent += (i?'\n':'')+s.log;
+    i++;w1timer=setTimeout(tick,1100);
+  };
+  tick();
+}
+function w1stop(){if(w1timer){clearTimeout(w1timer);w1timer=null;}}
+document.getElementById('w1run').addEventListener('click',w1play);
+document.getElementById('w1reset').addEventListener('click',()=>{w1stop();w1clear();w1packet.style.opacity='0';document.getElementById('w1stage').textContent='▶ "실행"을 눌러 데이터가 흐르는 과정을 보세요.';});
+
+/* ===== W2: method on chain ===== */
+const w2={
+  invoke:{desc:'<b>chain.invoke(입력)</b> — 완성된 답이 한 번에 도착함.',
+    run:el=>{el.textContent='chain.invoke({"product":"니트"})\\n실행 중...';setTimeout(()=>{el.textContent='chain.invoke({"product":"니트"})\\n→ AIMessage("포근함을 입다") ✅ (한 번에)';},700);}},
+  stream:{desc:'<b>chain.stream(입력)</b> — 모델부터 조각이 실시간으로 흘러나옴.',
+    run:el=>{const full='포근함을 입다 — 니트';el.textContent='chain.stream(...)\\n';let i=0;
+      const t=()=>{if(i<=full.length){el.textContent='chain.stream(...)\\n'+full.slice(0,i)+'▍';i++;setTimeout(t,80);}else{el.textContent='chain.stream(...)\\n'+full+' ✅';}};t();}},
+  batch:{desc:'<b>chain.batch([입력들])</b> — 여러 입력을 한꺼번에 처리함.',
+    run:el=>{el.textContent='chain.batch([니트, 코트, 스카프])\\n3개 동시 처리 중...';setTimeout(()=>{el.textContent='chain.batch([니트, 코트, 스카프])\\n→ ["포근함을 입다", "겨울의 품격", "한 끗의 차이"] ✅';},900);}}
+};
+let w2cur='invoke';
+function renderW2(k){w2cur=k;document.getElementById('w2desc').innerHTML=w2[k].desc;w2[k].run(document.getElementById('w2anim'));}
+document.querySelectorAll('#w2tabs .m2tab').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('#w2tabs .m2tab').forEach(x=>x.classList.remove('on'));t.classList.add('on');renderW2(t.dataset.k);}));
+document.getElementById('w2replay').addEventListener('click',()=>w2[w2cur].run(document.getElementById('w2anim')));
+renderW2('invoke');
+
+/* ===== W3: parallel ===== */
+const w3vals={original:'"울 코트"',emotional:'"겨울을 두르다"',practical:'"보온·방풍 우수"'};
+document.getElementById('w3run').addEventListener('click',()=>{
+  const branches=document.querySelectorAll('#w3branches .par-branch');
+  branches.forEach(b=>{b.classList.add('run');document.getElementById('w3-'+b.dataset.k).textContent='...';});
+  document.getElementById('w3merge').textContent='→ 세 갈래 동시 실행 중...';
+  setTimeout(()=>{
+    branches.forEach(b=>{document.getElementById('w3-'+b.dataset.k).textContent=w3vals[b.dataset.k];});
+    document.getElementById('w3merge').textContent='{original: "울 코트", 감성: "겨울을 두르다", 실용: "보온·방풍 우수"}  ✅ 한 바구니로';
+  },900);
+});
+Object.keys(w3vals).forEach(k=>document.getElementById('w3-'+k).textContent='');
+
+/* ===== W4: lambda adapter ===== */
+document.getElementById('w4wrap').addEventListener('click',()=>{
+  const fn=document.getElementById('w4fn');
+  fn.classList.add('wrapped');
+  document.getElementById('w4fntype').textContent='RunnableLambda(shout) (규격 ✓)';
+  document.getElementById('w4out').textContent='chain = RunnableLambda(shout)\\nchain.invoke("hello") → "HELLO!!!" ✅ 이제 파이프에 꽂힘';
+});
+document.getElementById('w4reset').addEventListener('click',()=>{
+  const fn=document.getElementById('w4fn');fn.classList.remove('wrapped');
+  document.getElementById('w4fntype').textContent='일반 함수 (규격 ✗)';
+  document.getElementById('w4out').textContent='어댑터를 끼우기 전에는 파이프에 꽂을 수 없음.';
+});
+
+/* ===== W5: quiz ===== */
+const q5=[
+  {q:'chain = prompt | model 일 때, chain.invoke({"product":"니트"})의 최종 출력 타입은?',
+   opts:[['str (문자열)',false],['AIMessage 객체',true],['dict (딕셔너리)',false]],
+   fb:'정답은 AIMessage. 파서를 안 붙였으므로 모델의 원본 출력 그대로임. 문자열로 받으려면 Part 4의 출력 파서가 필요함.'},
+  {q:'prompt | model 에서, prompt의 출력은 무엇으로 model에 전달되는가?',
+   opts:[['입력 딕셔너리 그대로',false],['빈칸이 채워진 메시지 리스트',true],['AIMessage',false]],
+   fb:'정답은 메시지 리스트. prompt가 빈칸을 채워 만든 메시지들이 model의 입력으로 흘러감.'},
+  {q:'"입력은 그대로 두고, 동시에 그 입력으로 다른 처리도 하고 싶다." 무엇을 쓰는가?',
+   opts:[['RunnableLambda',false],['RunnableParallel + RunnablePassthrough',true],['ChatPromptTemplate',false]],
+   fb:'정답. Parallel로 갈래를 나누고, 그대로 둘 갈래엔 Passthrough를 씀. RAG 체인의 핵심 패턴임.'},
+];
+let qi=0,answered=false;
+function renderQ5(){
+  answered=false;const it=q5[qi];
+  document.getElementById('q5q').textContent=`Q${qi+1}. ${it.q}`;
+  document.getElementById('q5fb').textContent='';
+  document.getElementById('q5next').disabled=true;
+  document.getElementById('q5next').textContent=qi<q5.length-1?'다음 →':'처음부터 ↺';
+  document.getElementById('q5opts').innerHTML=it.opts.map((o,i)=>`<button class="q5opt" data-i="${i}">${o[0]}</button>`).join('');
+  document.querySelectorAll('#q5opts .q5opt').forEach(b=>b.addEventListener('click',()=>{
+    if(answered)return;answered=true;const i=+b.dataset.i;const ok=it.opts[i][1];
+    document.querySelectorAll('#q5opts .q5opt').forEach((x,j)=>{if(it.opts[j][1])x.classList.add('correct');});
+    if(!ok)b.classList.add('wrong');
+    document.getElementById('q5fb').textContent=(ok?'✅ ':'💡 ')+it.fb;
+    document.getElementById('q5next').disabled=false;
+  }));
+}
+document.getElementById('q5next').addEventListener('click',()=>{qi=(qi+1)%q5.length;renderQ5();});
+renderQ5();
+</script>
+</body>
+</html>

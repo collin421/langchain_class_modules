@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Part 5 · 첫 미니 프로젝트</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Gowun+Dodum&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f4efe6;--card:#fbf8f2;--ink:#2b2723;--sub:#6f6457;--accent:#c2410c;
+    --accent-soft:#e9d5c4;--line:#e2d9c9;--teal:#2f6b5e;--gold:#a8762f;
+    --serif:'Gowun Batang',serif;--sans:'Gowun Dodum',sans-serif;--maxw:760px;color-scheme:light only;
+  }
+  @media (prefers-color-scheme:dark){:root{--bg:#f4efe6;--card:#fbf8f2;--ink:#2b2723;}}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.85;font-size:17px;-webkit-text-size-adjust:100%;
+    background-image:radial-gradient(circle at 20% 0%,rgba(194,65,12,.04),transparent 40%),radial-gradient(circle at 90% 100%,rgba(47,107,94,.04),transparent 45%);}
+  #progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:100;transition:width .1s linear;}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 22px;}
+  header.hero{max-width:var(--maxw);margin:0 auto;padding:88px 22px 40px;}
+  .eyebrow{color:var(--accent);font-size:13px;letter-spacing:.22em;font-weight:700;text-transform:uppercase;}
+  h1{font-family:var(--serif);font-weight:700;font-size:clamp(30px,6vw,46px);line-height:1.25;margin:14px 0 18px;letter-spacing:-.01em;}
+  .lead{font-size:18px;color:var(--sub);max-width:62ch;}
+  .hero-meta{margin-top:26px;display:flex;gap:10px;flex-wrap:wrap;}
+  .chip{font-size:12.5px;font-weight:700;letter-spacing:.04em;padding:6px 13px;border-radius:999px;background:var(--accent-soft);color:#8a3408;}
+  .chip.t{background:#d8e8e3;color:#225349;}
+  section{padding:54px 0 30px;border-top:1px solid var(--line);}
+  section:first-of-type{border-top:none;}
+  .sec-no{font-family:var(--serif);font-size:14px;color:var(--accent);font-weight:700;letter-spacing:.1em;}
+  h2{font-family:var(--serif);font-weight:700;font-size:clamp(23px,4.4vw,31px);margin:6px 0 20px;line-height:1.3;}
+  p{margin:0 0 16px;}
+  .sub{color:var(--sub);}
+  strong{color:var(--accent);font-weight:700;}
+  code{font-family:'Gowun Dodum',monospace;background:#efe7d8;color:#8a3408;padding:1.5px 7px;border-radius:6px;font-size:.92em;}
+  pre{background:#2b2723;color:#f4efe6;border-radius:12px;padding:16px 18px;overflow-x:auto;font-size:14px;line-height:1.7;margin:16px 0;}
+  pre code{background:none;color:inherit;padding:0;}
+  pre .k{color:#e0935f;}pre .s{color:#9ec79a;}pre .c{color:#8b8175;font-style:italic;}pre .p{color:#e8c07d;font-weight:700;}
+  .note{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px;padding:14px 18px;margin:18px 0;font-size:15.5px;color:var(--sub);}
+  .note b{color:var(--accent);}
+  .summary{background:#efe7d8;border-radius:12px;padding:18px 20px;margin:22px 0 4px;}
+  .summary .h{font-family:var(--serif);font-weight:700;color:var(--accent);font-size:15px;letter-spacing:.05em;margin-bottom:8px;}
+  .summary ol{margin:0;padding-left:20px;}.summary li{margin:5px 0;font-size:15.5px;}
+  .widget{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;margin:26px 0;box-shadow:0 6px 22px rgba(80,60,30,.06);}
+  .widget .wlabel{display:inline-block;font-size:11.5px;font-weight:700;letter-spacing:.14em;color:#fff;background:var(--accent);padding:4px 11px;border-radius:999px;margin-bottom:16px;}
+  .wdesc{font-size:14.5px;margin-bottom:14px;color:var(--sub);}
+  .btn{border:none;background:var(--accent);color:#fff;font-family:var(--sans);font-weight:700;font-size:13.5px;padding:9px 18px;border-radius:9px;cursor:pointer;}
+  .btn.ghost{background:#fdfaf4;border:1px solid var(--line);color:var(--sub);}
+  .btn[disabled]{opacity:.4;cursor:not-allowed;}
+
+  /* W1: design blueprint */
+  .bp{display:grid;grid-template-columns:1fr auto 1fr;gap:14px;align-items:center;}
+  .bp-side{background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:16px;text-align:center;}
+  .bp-side .t{font-size:12px;color:var(--sub);font-weight:700;}
+  .bp-side .v{font-family:monospace;margin-top:6px;font-size:13px;}
+  .bp-side.out{border-color:var(--teal);background:#f0f6f4;text-align:left;}
+  .bp-side.out .f{font-size:12px;padding:3px 0;border-bottom:1px dashed var(--line);}
+  .bp-side.out .f:last-child{border:none;}
+  .bp-mid{font-size:22px;color:var(--accent);text-align:center;}
+
+  /* W2: build chain step by step */
+  .bc-blocks{display:flex;flex-direction:column;gap:8px;margin-bottom:14px;}
+  .bc-block{display:flex;align-items:center;gap:10px;border:1.5px dashed var(--line);border-radius:10px;padding:12px 14px;font-size:13.5px;background:#fff;opacity:.45;transition:.4s;}
+  .bc-block.added{opacity:1;border-style:solid;border-color:var(--teal);background:#f0f6f4;}
+  .bc-block .ic{flex:none;width:24px;height:24px;border-radius:7px;background:var(--line);display:grid;place-items:center;font-size:12px;transition:.4s;}
+  .bc-block.added .ic{background:var(--teal);color:#fff;}
+  .bc-block .pt{font-size:11px;color:var(--sub);margin-left:auto;}
+  .bc-card{background:#2b2723;border-radius:12px;padding:18px;margin-top:6px;min-height:60px;transition:.4s;}
+  .bc-card.empty{display:flex;align-items:center;justify-content:center;color:#8b8175;font-size:13px;}
+  .bc-card .ch{font-family:var(--serif);font-weight:700;color:#f4efe6;font-size:16px;margin-bottom:6px;}
+  .bc-card .cd{color:#cfc5b4;font-size:13px;margin-bottom:8px;}
+  .bc-card .ct{color:#9ec79a;font-size:12px;}
+  .bc-card .cm{color:#e0935f;font-size:11px;margin-top:6px;}
+  .bc-ctl{margin-top:14px;display:flex;gap:8px;}
+
+  /* W3: batch / parallel */
+  .ex-tabs{display:flex;gap:8px;margin-bottom:14px;}
+  .extab{flex:1;border:1.5px solid var(--line);background:#fff;border-radius:9px;padding:10px;cursor:pointer;text-align:center;font-family:var(--sans);font-weight:700;font-size:13px;color:var(--sub);transition:.15s;}
+  .extab.on{border-color:var(--accent);background:var(--accent);color:#fff;}
+  .ex-stage{background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px;}
+  .ex-desc{font-size:13.5px;margin-bottom:10px;}
+  .ex-grid{display:flex;gap:8px;flex-wrap:wrap;}
+  .ex-item{flex:1;min-width:90px;background:#fdfaf4;border:1px solid var(--line);border-radius:9px;padding:10px;font-size:11.5px;text-align:center;transition:.3s;}
+  .ex-item.run{border-color:var(--accent);background:var(--accent-soft);}
+  .ex-item .h{font-weight:700;color:#8a3408;}
+
+  /* W4: chain vs agent limit */
+  .lim-toggle{display:flex;gap:8px;margin-bottom:14px;}
+  .limbtn{flex:1;border:1.5px solid var(--line);background:#fff;border-radius:9px;padding:11px;cursor:pointer;font-family:var(--sans);font-weight:700;font-size:13px;color:var(--sub);transition:.15s;}
+  .limbtn.on{border-color:var(--accent);background:var(--accent);color:#fff;}
+  .lim-stage{background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px;}
+  .lim-path{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:12px;justify-content:center;}
+  .lim-node{border:1.5px solid var(--line);border-radius:9px;padding:8px 11px;font-size:11.5px;background:#fdfaf4;}
+  .lim-node.decide{border-color:var(--gold);background:#fbf3e6;border-style:dashed;}
+  .lim-node.branch{border-color:var(--teal);background:#d8e8e3;}
+  .lim-arrow{color:var(--gold);font-weight:700;}
+  .lim-verdict{padding:11px 14px;border-radius:9px;font-size:13.5px;}
+  .lim-verdict.ok{background:#d8e8e3;color:#225349;}
+  .lim-verdict.no{background:#f3ddd2;color:#9a3a14;}
+
+  /* W5: chain or agent quiz */
+  .ca-q{font-family:var(--serif);font-weight:700;font-size:15px;margin-bottom:12px;}
+  .ca-opts{display:flex;gap:8px;}
+  .ca-opt{flex:1;border:1.5px solid var(--line);background:#fdfaf4;border-radius:10px;padding:13px;cursor:pointer;font-size:13.5px;font-weight:700;text-align:center;transition:.15s;}
+  .ca-opt.correct{border-color:var(--teal);background:#d8e8e3;color:#225349;}
+  .ca-opt.wrong{border-color:#c98a6e;background:#f3ddd2;color:#9a3a14;}
+  .ca-fb{margin-top:12px;font-size:13.5px;min-height:18px;color:var(--sub);}
+  .ca-nav{margin-top:12px;text-align:right;}
+  .ca-score{font-size:12.5px;color:var(--sub);margin-top:6px;}
+
+  footer{max-width:var(--maxw);margin:0 auto;padding:30px 22px 80px;color:var(--sub);font-size:14px;border-top:1px solid var(--line);}
+  .next-card{background:linear-gradient(135deg,#fbf8f2,#f0f6f4);border:1px solid var(--line);border-radius:14px;padding:20px;margin:20px 0 0;}
+  .next-card .nl{font-size:12px;letter-spacing:.14em;color:var(--teal);font-weight:700;}
+  .next-card .nt{font-family:var(--serif);font-weight:700;font-size:18px;margin-top:4px;}
+  .grad-badge{display:inline-block;background:var(--teal);color:#fff;font-size:12px;font-weight:700;padding:5px 14px;border-radius:999px;margin-bottom:14px;}
+  .reveal{opacity:0;transform:translateY(18px);transition:opacity .6s ease,transform .6s ease;}
+  .reveal.in{opacity:1;transform:none;}
+  @media(max-width:480px){body{font-size:16px;}.bp{grid-template-columns:1fr;}.bp-mid{transform:rotate(90deg);}}
+</style>
+</head>
+<body>
+<div id="progress"></div>
+
+<header class="hero">
+  <div class="eyebrow">LangChain 에이전트 마스터 · Part 5 · 초급 졸업</div>
+  <h1>첫 미니 프로젝트<br>마케팅 카드 생성기</h1>
+  <p class="lead">Part 1~4의 네 부품(모델·프롬프트·LCEL·파서)을 하나로 합쳐 작동하는 체인을 끝까지 만듦. 새 개념이 아니라 통합·실전이고, 마지막엔 "이 체인이 못 하는 것"을 마주하며 중급의 문을 엶.</p>
+  <div class="hero-meta">
+    <span class="chip">🟢 초급 · 5/5 졸업</span>
+    <span class="chip t">통합 프로젝트</span>
+    <span class="chip t">예상 45분</span>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- Section 1: 설계 -->
+  <section class="reveal">
+    <div class="sec-no">5-1 · 5-2</div>
+    <h2>설계가 먼저 — 입력과 출력</h2>
+    <p>만들 것은 <strong>상품명만 넣으면 마케팅 카드가 나오는</strong> 체인임. 코드 전에 입력·출력을 못 박음 — 좋은 프로젝트의 90%는 "출력 구조를 어떻게 정의하느냐"에서 갈림.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 프로젝트 설계도</span>
+      <p class="wdesc">적은 입력(상품명 하나)에서 풍부한 출력(5개 필드)을 뽑는 구조임. Pydantic 모델이 곧 이 설계도가 됨.</p>
+      <div class="bp">
+        <div class="bp-side"><div class="t">입력</div><div class="v">"베이지 케이블 니트"<br>(str)</div></div>
+        <div class="bp-mid">→</div>
+        <div class="bp-side out">
+          <div class="t" style="margin-bottom:6px;">출력 · MarketingCard</div>
+          <div class="f">headline: str</div>
+          <div class="f">description: str</div>
+          <div class="f">target: str</div>
+          <div class="f">hashtags: list[str]</div>
+          <div class="f">price_range: str</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;필드명은 영어로(코드에서 다루기 쉬움), <code>Field(description=...)</code> 설명은 한국어로 쓰는 조합이 무난함. 설명이 구체적일수록 모델이 각 칸을 의도대로 채움.</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>코드보다 입력·출력 설계를 먼저 못 박음.</li>
+      <li>출력 구조(Pydantic)가 곧 프로젝트의 설계도임.</li>
+      <li>적은 입력에서 풍부한 출력 = LLM 앱의 전형임.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 2: build chain -->
+  <section class="reveal">
+    <div class="sec-no">5-3</div>
+    <h2>체인 조립 — 부품을 배선하기</h2>
+    <p>설계도가 있으니 프롬프트와 구조화 모델을 파이프로 이음. Part 2·3·4가 한 줄에 모임 — 이 한 줄이 프로젝트의 심장임.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 단계별로 조립하기</span>
+      <p class="wdesc">블록을 하나씩 추가하며 체인을 완성함. 마지막 블록까지 붙으면 카드가 배출됨.</p>
+      <div class="bc-blocks" id="w2blocks">
+        <div class="bc-block" data-i="0"><span class="ic">1</span><span><code>prompt</code> — 마케터 역할 + 상품명 요청</span><span class="pt">Part 2</span></div>
+        <div class="bc-block" data-i="1"><span class="ic">2</span><span><code>| model</code> — gemini-3-flash</span><span class="pt">Part 1</span></div>
+        <div class="bc-block" data-i="2"><span class="ic">3</span><span><code>.with_structured_output(MarketingCard)</code></span><span class="pt">Part 4</span></div>
+      </div>
+      <div class="bc-card empty" id="w2card">아직 체인이 완성되지 않음 — 블록을 추가하세요</div>
+      <div class="bc-ctl">
+        <button class="btn" id="w2add">＋ 블록 추가</button>
+        <button class="btn ghost" id="w2reset">↻ 초기화</button>
+      </div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;<code>temperature</code>는 마케팅 카피처럼 다양성이 필요하니 0.7 정도로 둠(Part 1). 매번 똑같이 뽑고 싶으면 0으로 내림. 체인은 한 번 조립해 두고 상품마다 <code>.invoke()</code>로 재사용함.</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li><code>prompt | model.with_structured_output(...)</code>가 심장임.</li>
+      <li>상품명이 프롬프트→모델을 거쳐 검증된 카드 객체로 나옴.</li>
+      <li>이 한 체인에 Part 2·3·4가 모두 녹아 있음.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 3: batch/parallel -->
+  <section class="reveal">
+    <div class="sec-no">5-4</div>
+    <h2>확장 — 배치와 병렬</h2>
+    <p>체인이 작동하면 Part 3의 <code>.batch()</code>와 <code>RunnableParallel</code>로 손쉽게 확장됨. <strong>새 개념 없이</strong> 배운 도구의 조합만으로 프로젝트가 커짐.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 두 가지 확장</span>
+      <div class="ex-tabs" id="w3tabs">
+        <div class="extab on" data-k="batch">.batch() · 여러 상품</div>
+        <div class="extab" data-k="parallel">RunnableParallel · 여러 톤</div>
+      </div>
+      <div class="ex-stage">
+        <div class="ex-desc" id="w3desc"></div>
+        <div class="ex-grid" id="w3grid"></div>
+        <button class="btn" id="w3run" style="margin-top:12px;">▶ 실행</button>
+      </div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;결과가 객체라 <code>card.model_dump()</code>로 딕셔너리화해 스프레드시트·DB에 손쉽게 저장됨. 이런 "뒷단 연결"이 도구(Tool)와 에이전트를 배우는 중급에서 본격화됨.</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li><code>.batch()</code>로 여러 상품, <code>RunnableParallel</code>로 여러 버전을 한꺼번에.</li>
+      <li>새 개념 없이 Part 3 도구 조합만으로 확장됨.</li>
+      <li>객체라 저장·전달이 쉬워 자동화로 이어짐.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 4: chain limit -->
+  <section class="reveal">
+    <div class="sec-no">5-5</div>
+    <h2>체인의 한계 — 직진 도로</h2>
+    <p>우리 체인은 강력하지만 <strong>항상 정해진 길로만</strong> 흐름(Part 0의 "직진 도로"). 대부분의 작업엔 충분하지만, "상황을 보고 다음 행동을 그때그때 고르는" 일은 담을 수 없음.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 이 요구를 체인으로 풀 수 있을까</span>
+      <p class="wdesc">요구를 바꿔가며, 정해진 길(체인)로 풀 수 있는지 판정해봄.</p>
+      <div class="lim-toggle" id="w4tog">
+        <button class="limbtn on" data-k="simple">기본: 상품명 → 카드</button>
+        <button class="limbtn" data-k="complex">복잡: 신상이면 검색, 품절이면 알림</button>
+      </div>
+      <div class="lim-stage">
+        <div class="lim-path" id="w4path"></div>
+        <div class="lim-verdict" id="w4verdict"></div>
+      </div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;체인이 부족해서 에이전트를 쓰는 게 아님. <b>순서가 고정된 일은 여전히 체인이 더 빠르고 안전함.</b> 에이전트는 "동적 판단·도구·분기"가 필요한 순간에만 꺼내는 도구임. 이 경계 감각이 중급의 핵심임.</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>체인은 강력하지만 항상 정해진 길로만 흐름.</li>
+      <li>"검색할지 판단·분기"가 필요한 일은 체인으로 못 담음.</li>
+      <li>그때 필요한 것이 에이전트 — 중급의 시작임.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 5: chain or agent quiz -->
+  <section class="reveal">
+    <div class="sec-no">졸업 점검</div>
+    <h2>스스로 점검 — 체인일까 에이전트일까</h2>
+    <p>중급으로 가는 가장 중요한 감각은 "정해진 길인가, 동적 판단인가"임. 각 요구가 어느 쪽인지 골라봄.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 경계 판단</span>
+      <div class="ca-q" id="w5q"></div>
+      <div class="ca-opts" id="w5opts">
+        <div class="ca-opt" data-k="chain">🛣️ 체인 (정해진 길)</div>
+        <div class="ca-opt" data-k="agent">🧭 에이전트 (동적 판단)</div>
+      </div>
+      <div class="ca-fb" id="w5fb"></div>
+      <div class="ca-score" id="w5score"></div>
+      <div class="ca-nav"><button class="btn" id="w5next" disabled>다음 →</button></div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <span class="grad-badge">🎓 초급 과정(Part 0~5) 수료</span>
+  <div class="next-card">
+    <div class="nl">NEXT · PART 6 · 중급 시작</div>
+    <div class="nt">체인 vs 에이전트</div>
+    <p style="margin-top:8px;">오늘 마주한 그 경계를 정면으로 다룸. 무엇이 정해진 길이고 무엇이 동적 판단인지, "고정된 흐름"과 "스스로 도구를 고르는 판단"의 결정적 차이를 손에 잡히게 익힘.</p>
+  </div>
+  <p style="margin-top:24px;">LangChain 에이전트 마스터 커리큘럼 · Part 5 / 18 · LangChain 1.0 기준</p>
+</footer>
+
+<script>
+const prog=document.getElementById('progress');
+addEventListener('scroll',()=>{const h=document.documentElement;prog.style.width=((h.scrollTop)/(h.scrollHeight-h.clientHeight)*100)+'%';});
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('in');}),{threshold:.12});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+
+/* ===== W2: build chain ===== */
+let w2n=0;
+const w2card={ch:'📣 포근함을 입다, 베이지 케이블 니트',cd:'부드러운 케이블 짜임의 베이지 니트. 어떤 코디에도 어울리는 데일리 필수템.',ct:'🎯 20~30대 데일리룩 선호 여성  💰 5만원대',cm:'#베이지니트 #케이블니트 #데일리룩 #가을코디'};
+function renderW2(){
+  document.querySelectorAll('#w2blocks .bc-block').forEach((b,i)=>b.classList.toggle('added',i<w2n));
+  const card=document.getElementById('w2card');
+  if(w2n<3){card.className='bc-card empty';card.textContent=`아직 체인이 완성되지 않음 (${w2n}/3 블록)`;}
+  else{
+    card.className='bc-card';
+    card.innerHTML=`<div class="ch">${w2card.ch}</div><div class="cd">${w2card.cd}</div><div class="ct">${w2card.ct}</div><div class="cm">${w2card.cm}</div>`;
+  }
+  document.getElementById('w2add').disabled=w2n>=3;
+  document.getElementById('w2add').textContent=w2n>=3?'✅ 완성':'＋ 블록 추가';
+}
+document.getElementById('w2add').addEventListener('click',()=>{if(w2n<3){w2n++;renderW2();}});
+document.getElementById('w2reset').addEventListener('click',()=>{w2n=0;renderW2();});
+renderW2();
+
+/* ===== W3: batch/parallel ===== */
+const w3={
+  batch:{desc:'<code>chain.batch([트렌치코트, 린넨셔츠, 머플러])</code> — 여러 상품을 한꺼번에 처리해 카드 리스트를 받음.',
+    items:[['트렌치 코트','겨울의 품격'],['린넨 셔츠','여름을 가볍게'],['캐시미어 머플러','목끝의 사치']]},
+  parallel:{desc:'<code>RunnableParallel(감성=..., 실용=...)</code> — 한 상품(울 코트)에 두 톤의 헤드라인을 동시에 생성.',
+    items:[['감성 버전','겨울을 두르다'],['실용 버전','보온·방풍 우수']]}
+};
+let w3cur='batch';
+function renderW3grid(running){
+  const d=w3[w3cur];
+  document.getElementById('w3desc').innerHTML=d.desc;
+  document.getElementById('w3grid').innerHTML=d.items.map(([h,v])=>
+    `<div class="ex-item ${running?'run':''}"><div class="h">${h}</div><div>${running?'"'+v+'"':'대기'}</div></div>`).join('');
+}
+document.querySelectorAll('#w3tabs .extab').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('#w3tabs .extab').forEach(x=>x.classList.remove('on'));t.classList.add('on');w3cur=t.dataset.k;renderW3grid(false);}));
+document.getElementById('w3run').addEventListener('click',()=>{
+  renderW3grid(false);
+  setTimeout(()=>renderW3grid(true),250);
+});
+renderW3grid(false);
+
+/* ===== W4: chain limit ===== */
+const w4={
+  simple:{path:['입력','prompt','model','카드 출력'],cls:['','','','' ],
+    verdict:['ok','✅ 체인으로 충분함 — 어떤 상품이 와도 같은 길(직진 도로)을 감. 빠르고 예측 가능.']},
+  complex:{path:['입력','신상인가? 검색?','품절인가? 분기?','카드 / 알림'],cls:['','decide','branch',''],
+    verdict:['no','❌ 체인으로는 어려움 — "검색할지 판단"(동적)과 "카드냐 알림이냐 분기"가 필요함. 정해진 길로 담을 수 없음 → 에이전트가 필요!']}
+};
+function renderW4(k){
+  const d=w4[k];
+  document.getElementById('w4path').innerHTML=d.path.map((p,i)=>{
+    const node=`<span class="lim-node ${d.cls[i]}">${p}</span>`;
+    return i<d.path.length-1? node+'<span class="lim-arrow">→</span>':node;
+  }).join('');
+  const v=document.getElementById('w4verdict');
+  v.className='lim-verdict '+d.verdict[0];v.textContent=d.verdict[1];
+}
+document.querySelectorAll('#w4tog .limbtn').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('#w4tog .limbtn').forEach(x=>x.classList.remove('on'));b.classList.add('on');renderW4(b.dataset.k);}));
+renderW4('simple');
+
+/* ===== W5: chain or agent quiz ===== */
+const w5=[
+  {q:'고객 문의를 받아 항상 "요약 → 카테고리 분류 → 정중한 답변 초안" 순서로 처리한다.',a:'chain',
+   fb:'체인! 흐름이 고정되어 있어 판단이 필요 없음. 정해진 길이 가장 빠르고 안전함.'},
+  {q:'질문에 따라 "사내 문서를 검색할지, 계산기를 쓸지, 바로 답할지"를 매번 스스로 정해야 한다.',a:'agent',
+   fb:'에이전트! 도구를 보고 다음 행동을 스스로 고르는 동적 판단이 필요함.'},
+  {q:'상품명을 받아 정해진 형식의 마케팅 카드를 생성한다. (오늘 만든 프로젝트)',a:'chain',
+   fb:'체인! 우리가 Part 5에서 만든 바로 그것. 입력→출력이 한 길로 정해져 있음.'},
+  {q:'재고가 있으면 주문을 넣고, 없으면 입고 알림을 등록하며, 그 판단을 모델이 한다.',a:'agent',
+   fb:'에이전트! 상황에 따른 분기 + 도구(주문/알림 등록) 사용이 필요함.'},
+];
+let qi=0,answered=false,score=0;
+function renderW5(){
+  answered=false;const it=w5[qi];
+  document.getElementById('w5q').textContent=`Q${qi+1}. ${it.q}`;
+  document.getElementById('w5fb').textContent='';
+  document.getElementById('w5score').textContent=`점수: ${score} / ${w5.length}`;
+  document.getElementById('w5next').disabled=true;
+  document.getElementById('w5next').textContent=qi<w5.length-1?'다음 →':'처음부터 ↺';
+  document.querySelectorAll('#w5opts .ca-opt').forEach(o=>{o.className='ca-opt';});
+}
+document.querySelectorAll('#w5opts .ca-opt').forEach(o=>o.addEventListener('click',()=>{
+  if(answered)return;answered=true;const it=w5[qi];const ok=o.dataset.k===it.a;
+  document.querySelectorAll('#w5opts .ca-opt').forEach(x=>{if(x.dataset.k===it.a)x.classList.add('correct');});
+  if(!ok)o.classList.add('wrong'); else score++;
+  document.getElementById('w5fb').textContent=(ok?'✅ ':'💡 ')+it.fb;
+  document.getElementById('w5score').textContent=`점수: ${score} / ${w5.length}`;
+  document.getElementById('w5next').disabled=false;
+}));
+document.getElementById('w5next').addEventListener('click',()=>{
+  if(qi>=w5.length-1){qi=0;score=0;}else{qi++;}renderW5();
+});
+renderW5();
+</script>
+</body>
+</html>

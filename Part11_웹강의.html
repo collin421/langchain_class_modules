@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Part 11 · 중급 프로젝트 — 문서 작성 비서</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Gowun+Dodum&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f4efe6;--card:#fbf8f2;--ink:#2b2723;--sub:#6f6457;--accent:#c2410c;
+    --accent-soft:#e9d5c4;--line:#e2d9c9;--teal:#2f6b5e;--gold:#a8762f;
+    --serif:'Gowun Batang',serif;--sans:'Gowun Dodum',sans-serif;--maxw:760px;color-scheme:light only;
+  }
+  @media (prefers-color-scheme:dark){:root{--bg:#f4efe6;--card:#fbf8f2;--ink:#2b2723;}}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.85;font-size:17px;-webkit-text-size-adjust:100%;
+    background-image:radial-gradient(circle at 20% 0%,rgba(194,65,12,.04),transparent 40%),radial-gradient(circle at 90% 100%,rgba(47,107,94,.04),transparent 45%);}
+  #progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:100;transition:width .1s linear;}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 22px;}
+  header.hero{max-width:var(--maxw);margin:0 auto;padding:88px 22px 40px;}
+  .eyebrow{color:var(--accent);font-size:13px;letter-spacing:.22em;font-weight:700;text-transform:uppercase;}
+  h1{font-family:var(--serif);font-weight:700;font-size:clamp(30px,6vw,46px);line-height:1.25;margin:14px 0 18px;letter-spacing:-.01em;}
+  .lead{font-size:18px;color:var(--sub);max-width:62ch;}
+  .hero-meta{margin-top:26px;display:flex;gap:10px;flex-wrap:wrap;}
+  .chip{font-size:12.5px;font-weight:700;letter-spacing:.04em;padding:6px 13px;border-radius:999px;background:var(--accent-soft);color:#8a3408;}
+  .chip.t{background:#d8e8e3;color:#225349;}
+  section{padding:54px 0 30px;border-top:1px solid var(--line);}
+  section:first-of-type{border-top:none;}
+  .sec-no{font-family:var(--serif);font-size:14px;color:var(--accent);font-weight:700;letter-spacing:.1em;}
+  h2{font-family:var(--serif);font-weight:700;font-size:clamp(23px,4.4vw,31px);margin:6px 0 20px;line-height:1.3;}
+  p{margin:0 0 16px;}
+  .sub{color:var(--sub);}
+  strong{color:var(--accent);font-weight:700;}
+  code{font-family:'Gowun Dodum',monospace;background:#efe7d8;color:#8a3408;padding:1.5px 7px;border-radius:6px;font-size:.92em;}
+  pre{background:#2b2723;color:#f4efe6;border-radius:12px;padding:16px 18px;overflow-x:auto;font-size:14px;line-height:1.7;margin:16px 0;}
+  pre code{background:none;color:inherit;padding:0;}
+  pre .k{color:#e0935f;}pre .s{color:#9ec79a;}pre .c{color:#8b8175;font-style:italic;}
+  .note{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px;padding:14px 18px;margin:18px 0;font-size:15.5px;color:var(--sub);}
+  .note b{color:var(--accent);}
+  .summary{background:#efe7d8;border-radius:12px;padding:18px 20px;margin:22px 0 4px;}
+  .summary .h{font-family:var(--serif);font-weight:700;color:var(--accent);font-size:15px;letter-spacing:.05em;margin-bottom:8px;}
+  .summary ol{margin:0;padding-left:20px;}.summary li{margin:5px 0;font-size:15.5px;}
+  .widget{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;margin:26px 0;box-shadow:0 6px 22px rgba(80,60,30,.06);}
+  .widget .wlabel{display:inline-block;font-size:11.5px;font-weight:700;letter-spacing:.14em;color:#fff;background:var(--accent);padding:4px 11px;border-radius:999px;margin-bottom:16px;}
+  .wdesc{font-size:14.5px;margin-bottom:14px;color:var(--sub);}
+  .btn{border:none;background:var(--accent);color:#fff;font-family:var(--sans);font-weight:700;font-size:13.5px;padding:9px 18px;border-radius:9px;cursor:pointer;}
+  .btn.ghost{background:#fdfaf4;border:1px solid var(--line);color:var(--sub);}
+
+  /* W1: blueprint */
+  .bp{display:grid;grid-template-columns:1fr auto 1fr;gap:14px;align-items:center;}
+  .bp-side{background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:14px;}
+  .bp-side .t{font-size:11px;color:var(--sub);font-weight:700;margin-bottom:6px;}
+  .bp-side.in .v{font-size:13px;font-family:monospace;}
+  .bp-side.out .f{font-size:12px;padding:3px 0;border-bottom:1px dashed var(--line);}
+  .bp-side.out .f:last-child{border:none;}
+  .bp-mid{font-size:22px;color:var(--accent);text-align:center;}
+  .bp-engine{margin-top:12px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;}
+  .bp-eng{font-size:11px;font-weight:700;padding:5px 11px;border-radius:999px;background:#d8e8e3;color:#225349;}
+
+  /* W2: tool routing */
+  .tr-chat{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:12px;min-height:52px;font-size:13px;}
+  .tr-tools{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;}
+  .tr-tool{flex:1;min-width:88px;border:1.5px solid var(--line);border-radius:9px;padding:8px;text-align:center;background:#fdfaf4;font-size:10.5px;transition:.3s;}
+  .tr-tool.picked{border-color:var(--teal);background:#d8e8e3;transform:translateY(-2px);box-shadow:0 4px 10px rgba(47,107,94,.15);}
+  .tr-tool .te{font-size:16px;}
+  .tr-tool .tn{font-family:monospace;font-weight:700;font-size:10px;margin-top:2px;}
+  .tr-qs{display:flex;flex-wrap:wrap;gap:6px;}
+  .trq{border:1.5px solid var(--line);background:#fff;border-radius:999px;padding:7px 12px;font-size:12px;cursor:pointer;font-family:var(--sans);transition:.15s;}
+  .trq.on{border-color:var(--accent);background:var(--accent);color:#fff;}
+
+  /* W3: RAG collaboration */
+  .rg-flow{display:flex;flex-direction:column;gap:7px;}
+  .rg-step{display:flex;align-items:center;gap:10px;background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:11px 13px;font-size:12.5px;opacity:.4;transition:.4s;}
+  .rg-step.lit{opacity:1;}
+  .rg-step.search.lit{border-color:var(--teal);background:#eef5f3;}
+  .rg-step.write.lit{border-color:var(--gold);background:#fbf3e6;}
+  .rg-step .n{flex:none;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:12px;color:#fff;background:var(--sub);}
+  .rg-step.search.lit .n{background:var(--teal);}.rg-step.write.lit .n{background:var(--gold);}
+  .rg-arrow{text-align:center;color:var(--gold);font-size:14px;}
+  .rg-ctl{margin-top:12px;}
+
+  /* W4: memory timeline */
+  .mt-thread{font-family:monospace;font-size:11px;color:var(--sub);text-align:center;margin-bottom:10px;}
+  .mt-turns{display:flex;flex-direction:column;gap:8px;}
+  .mt-turn{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 13px;opacity:0;transform:translateX(-8px);transition:.4s;}
+  .mt-turn.show{opacity:1;transform:none;}
+  .mt-turn .u{font-size:12.5px;font-weight:700;}
+  .mt-turn .ref{display:inline-block;background:#d8e8e3;color:#225349;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:999px;margin-left:6px;}
+  .mt-turn .a{font-size:12px;color:var(--sub);margin-top:4px;}
+  .mt-doc{margin-top:12px;background:#efe7d8;border-radius:9px;padding:11px 13px;font-size:12px;}
+  .mt-doc .dt{font-weight:700;color:#8a3408;font-size:11px;margin-bottom:4px;}
+  .mt-ctl{margin-top:12px;display:flex;gap:8px;align-items:center;}
+  .mt-count{font-size:12px;color:var(--sub);margin-left:auto;}
+
+  /* W5: secretary vs approval line */
+  .av-toggle{display:flex;gap:8px;margin-bottom:14px;}
+  .avbtn{flex:1;border:1.5px solid var(--line);background:#fff;border-radius:9px;padding:10px;cursor:pointer;font-family:var(--sans);font-weight:700;font-size:12.5px;color:var(--sub);transition:.15s;}
+  .avbtn.on{border-color:var(--accent);background:var(--accent);color:#fff;}
+  .av-stage{background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px;}
+  .av-path{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:center;margin-bottom:12px;}
+  .av-node{border:1.5px solid var(--line);border-radius:9px;padding:8px 11px;font-size:11.5px;background:#fdfaf4;}
+  .av-node.human{border-color:var(--accent);background:var(--accent-soft);border-style:dashed;}
+  .av-node.loop{border-color:var(--teal);background:#d8e8e3;}
+  .av-arrow{color:var(--gold);font-weight:700;}
+  .av-verdict{padding:11px 14px;border-radius:9px;font-size:13px;}
+  .av-verdict.ok{background:#d8e8e3;color:#225349;}.av-verdict.no{background:#f3ddd2;color:#9a3a14;}
+
+  footer{max-width:var(--maxw);margin:0 auto;padding:30px 22px 80px;color:var(--sub);font-size:14px;border-top:1px solid var(--line);}
+  .grad-badge{display:inline-block;background:var(--teal);color:#fff;font-size:12px;font-weight:700;padding:5px 14px;border-radius:999px;margin-bottom:14px;}
+  .next-card{background:linear-gradient(135deg,#fbf8f2,#f0f6f4);border:1px solid var(--line);border-radius:14px;padding:20px;margin:20px 0 0;}
+  .next-card .nl{font-size:12px;letter-spacing:.14em;color:var(--teal);font-weight:700;}
+  .next-card .nt{font-family:var(--serif);font-weight:700;font-size:18px;margin-top:4px;}
+  .reveal{opacity:0;transform:translateY(18px);transition:opacity .6s ease,transform .6s ease;}
+  .reveal.in{opacity:1;transform:none;}
+  @media(max-width:480px){body{font-size:16px;}.bp{grid-template-columns:1fr;}.bp-mid{transform:rotate(90deg);}.tr-tools{flex-direction:column;}}
+</style>
+</head>
+<body>
+<div id="progress"></div>
+
+<header class="hero">
+  <div class="eyebrow">LangChain 에이전트 마스터 · Part 11 · 중급 졸업</div>
+  <h1>중급 프로젝트<br>문서 작성 비서 에이전트</h1>
+  <p class="lead">도구(7)·RAG(8)·메모리(10)를 하나로 합쳐 일하는 비서를 완성함. 보고서 개요를 짜고, 섹션을 쓰고, PPT를 구성하고, 자료에서 근거를 찾고, "아까 그 보고서에 추가"처럼 이어 작업함. 마지막엔 "정해진 절차"의 한계를 마주하며 고급의 문을 엶.</p>
+  <div class="hero-meta">
+    <span class="chip">🟡 중급 · 11/18 졸업</span>
+    <span class="chip t">도구+RAG+메모리</span>
+    <span class="chip t">예상 45분</span>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- Section 1: blueprint -->
+  <section class="reveal">
+    <div class="sec-no">11-1</div>
+    <h2>설계 — 문서 작성 비서</h2>
+    <p>"○○ 주제로 보고서 만들어줘"라고 하면, 에이전트가 스스로 도구를 골라 개요·초안·구성·요약을 만들고, 대화를 이어가며 다듬어 주는 비서임. 출력이 요청마다 달라지므로 <strong>여러 도구를 갖춰 에이전트가 고르게</strong> 하는 것이 핵심임.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 프로젝트 설계도</span>
+      <p class="wdesc">자유로운 자연어 입력을, 요청에 맞는 문서 산출물로. 중급 셋이 모두 엔진으로 들어감.</p>
+      <div class="bp">
+        <div class="bp-side in"><div class="t">입력</div><div class="v">"생성형 AI 도입<br>보고서 짜줘"<br>(자연어)</div></div>
+        <div class="bp-mid">→</div>
+        <div class="bp-side out">
+          <div class="t">출력 (요청에 따라)</div>
+          <div class="f">📋 보고서 개요</div>
+          <div class="f">✍️ 섹션 초안</div>
+          <div class="f">📊 슬라이드 구성</div>
+          <div class="f">📝 요약</div>
+        </div>
+      </div>
+      <div class="bp-engine">
+        <span class="bp-eng">🔧 도구 (7)</span>
+        <span class="bp-eng">📕 RAG (8)</span>
+        <span class="bp-eng">🧵 메모리 (10)</span>
+      </div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;여기서 "문서 자동화"는 에이전트가 <b>내용·구조를 생성</b>하는 데 초점을 둠. 실제 .docx·.pptx 렌더링은 별개의 후처리(구조화된 결과를 파일 생성 코드에 넘김)임.</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>요청에 따라 문서를 만들어 주는 작성 비서 에이전트임.</li>
+      <li>출력이 요청마다 달라 여러 도구를 갖춰 고르게 함.</li>
+      <li>도구·RAG·메모리가 모두 엔진으로 들어감.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 2: tool routing -->
+  <section class="reveal">
+    <div class="sec-no">11-2</div>
+    <h2>문서 작업 도구들</h2>
+    <p>문서 작업을 단일 기능 도구로 나눔(목차·초안·구성·요약). docstring의 "언제 쓰는지"가 라우팅을 좌우함(Part 7).</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 요청 → 도구 선택</span>
+      <p class="wdesc">요청을 눌러, 비서가 어떤 작업 도구를 고르는지 봄.</p>
+      <div class="tr-chat" id="w2chat"></div>
+      <div class="tr-tools" id="w2tools">
+        <div class="tr-tool" data-k="outline"><div class="te">📋</div><div class="tn">make_outline</div></div>
+        <div class="tr-tool" data-k="draft"><div class="te">✍️</div><div class="tn">draft_section</div></div>
+        <div class="tr-tool" data-k="slide"><div class="te">📊</div><div class="tn">make_slide_plan</div></div>
+        <div class="tr-tool" data-k="sum"><div class="te">📝</div><div class="tn">summarize_text</div></div>
+      </div>
+      <div class="tr-qs" id="w2qs">
+        <button class="trq on" data-k="outline">보고서 목차 짜줘</button>
+        <button class="trq" data-k="draft">'리스크' 섹션 써줘</button>
+        <button class="trq" data-k="slide">5장 PPT로 만들어줘</button>
+        <button class="trq" data-k="sum">이거 3줄로 줄여줘</button>
+      </div>
+    </div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>문서 작업을 단일 기능 도구로 나눔.</li>
+      <li>docstring "언제 쓰는지"가 라우팅을 좌우함.</li>
+      <li>도구가 작은 체인을 품어 구조화 결과를 낼 수 있음.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 3: RAG collaboration -->
+  <section class="reveal">
+    <div class="sec-no">11-3</div>
+    <h2>RAG로 근거 붙이기 — 도구의 협력</h2>
+    <p>근거가 필요한 대목엔 <code>search_reference</code>(RAG)로 자료를 찾아, 그 사실을 작성 도구에 반영함. <strong>검색 도구(근거 수집) + 작성 도구(글쓰기)가 협력</strong>하는 것이 사실 기반 문서의 핵심임.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · "데이터 근거로 단락 써줘"</span>
+      <p class="wdesc">"다음 단계"를 누르며, 에이전트가 자료를 먼저 검색하고 그 근거로 글을 쓰는 협력 과정을 따라감.</p>
+      <div class="rg-flow" id="w3flow">
+        <div class="rg-step search" data-i="0"><span class="n">1</span><span>🔍 <b>search_reference</b>("생성형 AI 도입 효과") 호출 — 근거가 필요하다고 판단</span></div>
+        <div class="rg-arrow">↓</div>
+        <div class="rg-step search" data-i="1"><span class="n">2</span><span>👁 자료 검색 결과: "도입률 2배 증가, 반복 업무 30% 단축"</span></div>
+        <div class="rg-arrow">↓</div>
+        <div class="rg-step write" data-i="2"><span class="n">3</span><span>✍️ <b>draft_section</b> — 그 수치를 인용해 단락 작성</span></div>
+        <div class="rg-arrow">↓</div>
+        <div class="rg-step write" data-i="3"><span class="n">4</span><span>📄 "2025년 도입률은 2배 증가했고, 반복 업무 시간이 30% 단축되었다 [자료 근거]"</span></div>
+      </div>
+      <div class="rg-ctl"><button class="btn" id="w3step">▶ 다음 단계</button> <button class="btn ghost" id="w3reset">↻</button></div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;system_prompt에 "수치·사실은 반드시 search_reference로 확인하라"를 명시하면 추측을 막음. 근거 출처를 표기하게 하면 문서 신뢰도가 올라감.</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>RAG를 도구로 붙이면 에이전트가 자료에서 근거를 가져옴.</li>
+      <li>검색 도구와 작성 도구가 협력해 사실 기반 문서를 만듦.</li>
+      <li>"사실은 검색으로 확인"을 지침에 명시해 추측을 막음.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 4: memory timeline -->
+  <section class="reveal">
+    <div class="sec-no">11-4</div>
+    <h2>메모리로 이어 작업하기</h2>
+    <p>문서 작업은 한 번에 안 끝남. 같은 thread로 "개요 → 섹션 추가 → 슬라이드"를 이어가면, 메모리 덕에 "거기에", "이 보고서를" 같은 후속 지시가 통함(Part 10).</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 누적되는 문서 작업</span>
+      <p class="wdesc">"다음 턴"을 누르며, 같은 thread에서 문서가 점점 완성되어 가는 과정을 봄.</p>
+      <div class="mt-thread">thread_id: "report-1"</div>
+      <div class="mt-turns" id="w4turns"></div>
+      <div class="mt-doc" id="w4doc"></div>
+      <div class="mt-ctl">
+        <button class="btn" id="w4step">▶ 다음 턴</button>
+        <button class="btn ghost" id="w4reset">↻</button>
+        <span class="mt-count" id="w4count"></span>
+      </div>
+    </div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>메모리로 이어지는 문서 편집이 가능해짐.</li>
+      <li>"거기에", "이 보고서를" 같은 후속 지시가 통함.</li>
+      <li>도구·RAG·메모리가 한 흐름에서 함께 작동하는 완성형임.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 5: limit → LangGraph -->
+  <section class="reveal">
+    <div class="sec-no">11-5</div>
+    <h2>한계 — 자유 비서 vs 결재 라인</h2>
+    <p>완성한 에이전트는 흐름을 <strong>모델의 자유 판단</strong>에 맡김. 대부분의 일엔 충분하지만, 회사의 <strong>결재 라인</strong>처럼 "반드시 거쳐야 하는 정해진 절차"가 있는 일에는 버거워함.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 이 요구를 자유 에이전트로 보장할 수 있을까</span>
+      <p class="wdesc">요구를 바꿔, 자유 판단(에이전트)으로 보장되는지 판정해봄.</p>
+      <div class="av-toggle" id="w5tog">
+        <button class="avbtn on" data-k="free">자유 작업: "보고서 써줘"</button>
+        <button class="avbtn" data-k="proc">절차: "초안→검토→승인→발행, 반려시 수정 반복"</button>
+      </div>
+      <div class="av-stage">
+        <div class="av-path" id="w5path"></div>
+        <div class="av-verdict" id="w5verdict"></div>
+      </div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;에이전트(자유 판단)와 그래프(명시적 제어)는 대립이 아니라 <b>계층</b>임. 큰 절차는 LangGraph로 짜고, 각 단계 안의 자유 판단만 에이전트에 맡김. 오늘 만든 비서는 버려지지 않고 그래프의 한 노드가 됨.</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>완성한 에이전트는 흐름을 모델의 자유 판단에 맡김.</li>
+      <li>"정해진 절차·반복·사람 개입"은 보장하기 어려움.</li>
+      <li>그때 필요한 것이 LangGraph로 흐름을 직접 그리는 것(고급).</li>
+    </ol></div>
+  </section>
+
+</main>
+
+<footer>
+  <span class="grad-badge">🎓 중급 과정(Part 6~11) 수료</span>
+  <div class="next-card">
+    <div class="nl">NEXT · PART 12 · 고급 시작</div>
+    <div class="nt">왜 LangGraph인가</div>
+    <p style="margin-top:8px;">오늘 마주한 한계 — 루프·조건 분기·장기 상태·사람 개입 — 를 정면으로 다룸. <code>create_agent</code>의 편리함을 넘어, 흐름의 운전대를 우리가 직접 쥐어야 하는 순간이 언제인지 익힘.</p>
+  </div>
+  <p style="margin-top:24px;">LangChain 에이전트 마스터 커리큘럼 · Part 11 / 18 · LangChain 1.0 기준</p>
+</footer>
+
+<script>
+const prog=document.getElementById('progress');
+addEventListener('scroll',()=>{const h=document.documentElement;prog.style.width=((h.scrollTop)/(h.scrollHeight-h.clientHeight)*100)+'%';});
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('in');}),{threshold:.12});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+
+/* ===== W2: tool routing ===== */
+const w2={
+  outline:{q:'생성형 AI 도입 보고서 목차 짜줘',pick:'outline',a:'📋 make_outline → "1.개요 2.도입효과 3.리스크 4.도입단계 5.결론"'},
+  draft:{q:"'도입 리스크' 섹션 써줘",pick:'draft',a:'✍️ draft_section → "주요 리스크는 환각, 데이터 보안, 저작권이다..."'},
+  slide:{q:'이 보고서를 5장 PPT로 만들어줘',pick:'slide',a:'📊 make_slide_plan → "1장: 제목 / 2장: 도입효과 / ..."'},
+  sum:{q:'이 내용 3줄로 줄여줘',pick:'sum',a:'📝 summarize_text → 핵심 3줄 요약'}
+};
+function renderW2(k){
+  const d=w2[k];
+  document.getElementById('w2chat').innerHTML=`<b>🙋 "${d.q}"</b><br><span style="color:var(--sub);font-size:12px">${d.a}</span>`;
+  document.querySelectorAll('#w2tools .tr-tool').forEach(t=>t.classList.toggle('picked',t.dataset.k===d.pick));
+}
+document.querySelectorAll('#w2qs .trq').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('#w2qs .trq').forEach(x=>x.classList.remove('on'));b.classList.add('on');renderW2(b.dataset.k);}));
+renderW2('outline');
+
+/* ===== W3: RAG collaboration ===== */
+let w3i=0;
+function renderW3(){
+  document.querySelectorAll('#w3flow .rg-step').forEach((s,idx)=>s.classList.toggle('lit',idx<w3i));
+  document.getElementById('w3step').disabled=w3i>=4;
+  document.getElementById('w3step').textContent=w3i>=4?'✅ 완료 (검색→작성 협력)':'▶ 다음 단계';
+}
+document.getElementById('w3step').addEventListener('click',()=>{if(w3i<4){w3i++;renderW3();}});
+document.getElementById('w3reset').addEventListener('click',()=>{w3i=0;renderW3();});
+renderW3();
+
+/* ===== W4: memory timeline ===== */
+const w4turns=[
+  {u:'생성형 AI 도입 보고서 개요 짜줘',ref:null,a:'📋 5개 대제목 개요 생성',doc:'개요: 1.개요 2.효과 3.리스크 4.단계 5.결론'},
+  {u:'거기에 "도입 리스크" 섹션 추가해줘',ref:'"거기"=앞 개요 기억',a:'✍️ 리스크 섹션 초안 추가',doc:'개요 + 📄 리스크 섹션 본문'},
+  {u:'이 보고서를 5장 PPT로 구성해줘',ref:'"이 보고서"=지금까지',a:'📊 5장 슬라이드 구성안',doc:'개요 + 리스크 섹션 + 📊 5장 PPT'},
+];
+let w4i=0;
+function renderW4(){
+  document.getElementById('w4turns').innerHTML=w4turns.map((t,idx)=>{
+    const show=idx<w4i?'show':'';
+    const ref=t.ref?`<span class="ref">🧵 ${t.ref}</span>`:'';
+    return `<div class="mt-turn ${show}"><div class="u">🙋 ${t.u}${ref}</div><div class="a">🤖 ${t.a}</div></div>`;
+  }).join('');
+  const doc=w4i>0?w4turns[w4i-1].doc:'(아직 작업물 없음)';
+  document.getElementById('w4doc').innerHTML=`<div class="dt">📁 현재 문서 상태 (thread에 누적)</div>${doc}`;
+  document.getElementById('w4count').textContent=`턴 ${w4i}/${w4turns.length}`;
+  document.getElementById('w4step').disabled=w4i>=w4turns.length;
+  document.getElementById('w4step').textContent=w4i>=w4turns.length?'✅ 문서 완성':'▶ 다음 턴';
+}
+document.getElementById('w4step').addEventListener('click',()=>{if(w4i<w4turns.length){w4i++;renderW4();}});
+document.getElementById('w4reset').addEventListener('click',()=>{w4i=0;renderW4();});
+renderW4();
+
+/* ===== W5: secretary vs approval ===== */
+const w5={
+  free:{path:[['','요청'],['','비서 (자유 판단)'],['','문서 산출']],
+    verdict:['ok','✅ 자유 에이전트로 충분함 — 목차·초안·구성을 알아서 만들어 줌. 대부분의 문서 작업이 여기 해당.']},
+  proc:{path:[['','초안'],['human','사람 검토 (멈춤)'],['','승인?'],['loop','반려→수정 반복'],['','발행']],
+    verdict:['no','❌ 자유 에이전트로는 보장 어려움 — "검토에서 반드시 멈추고 기다리기", "반려 시 루프로 되돌아가기", "승인 전 발행 금지"는 명시적 흐름 제어가 필요함 → LangGraph!']}
+};
+function renderW5(k){
+  const d=w5[k];
+  document.getElementById('w5path').innerHTML=d.path.map((p,i)=>{
+    const node=`<span class="av-node ${p[0]}">${p[1]}</span>`;
+    return i<d.path.length-1? node+'<span class="av-arrow">→</span>':node;
+  }).join('');
+  const v=document.getElementById('w5verdict');v.className='av-verdict '+d.verdict[0];v.textContent=d.verdict[1];
+}
+document.querySelectorAll('#w5tog .avbtn').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('#w5tog .avbtn').forEach(x=>x.classList.remove('on'));b.classList.add('on');renderW5(b.dataset.k);}));
+renderW5('free');
+</script>
+</body>
+</html>

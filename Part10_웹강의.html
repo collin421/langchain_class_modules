@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Part 10 · 메모리와 상태</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Gowun+Dodum&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f4efe6;--card:#fbf8f2;--ink:#2b2723;--sub:#6f6457;--accent:#c2410c;
+    --accent-soft:#e9d5c4;--line:#e2d9c9;--teal:#2f6b5e;--gold:#a8762f;
+    --serif:'Gowun Batang',serif;--sans:'Gowun Dodum',sans-serif;--maxw:760px;color-scheme:light only;
+  }
+  @media (prefers-color-scheme:dark){:root{--bg:#f4efe6;--card:#fbf8f2;--ink:#2b2723;}}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.85;font-size:17px;-webkit-text-size-adjust:100%;
+    background-image:radial-gradient(circle at 20% 0%,rgba(194,65,12,.04),transparent 40%),radial-gradient(circle at 90% 100%,rgba(47,107,94,.04),transparent 45%);}
+  #progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:100;transition:width .1s linear;}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 22px;}
+  header.hero{max-width:var(--maxw);margin:0 auto;padding:88px 22px 40px;}
+  .eyebrow{color:var(--accent);font-size:13px;letter-spacing:.22em;font-weight:700;text-transform:uppercase;}
+  h1{font-family:var(--serif);font-weight:700;font-size:clamp(30px,6vw,46px);line-height:1.25;margin:14px 0 18px;letter-spacing:-.01em;}
+  .lead{font-size:18px;color:var(--sub);max-width:62ch;}
+  .hero-meta{margin-top:26px;display:flex;gap:10px;flex-wrap:wrap;}
+  .chip{font-size:12.5px;font-weight:700;letter-spacing:.04em;padding:6px 13px;border-radius:999px;background:var(--accent-soft);color:#8a3408;}
+  .chip.t{background:#d8e8e3;color:#225349;}
+  section{padding:54px 0 30px;border-top:1px solid var(--line);}
+  section:first-of-type{border-top:none;}
+  .sec-no{font-family:var(--serif);font-size:14px;color:var(--accent);font-weight:700;letter-spacing:.1em;}
+  h2{font-family:var(--serif);font-weight:700;font-size:clamp(23px,4.4vw,31px);margin:6px 0 20px;line-height:1.3;}
+  p{margin:0 0 16px;}
+  .sub{color:var(--sub);}
+  strong{color:var(--accent);font-weight:700;}
+  code{font-family:'Gowun Dodum',monospace;background:#efe7d8;color:#8a3408;padding:1.5px 7px;border-radius:6px;font-size:.92em;}
+  pre{background:#2b2723;color:#f4efe6;border-radius:12px;padding:16px 18px;overflow-x:auto;font-size:14px;line-height:1.7;margin:16px 0;}
+  pre code{background:none;color:inherit;padding:0;}
+  pre .k{color:#e0935f;}pre .s{color:#9ec79a;}pre .c{color:#8b8175;font-style:italic;}
+  .note{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px;padding:14px 18px;margin:18px 0;font-size:15.5px;color:var(--sub);}
+  .note b{color:var(--accent);}
+  .summary{background:#efe7d8;border-radius:12px;padding:18px 20px;margin:22px 0 4px;}
+  .summary .h{font-family:var(--serif);font-weight:700;color:var(--accent);font-size:15px;letter-spacing:.05em;margin-bottom:8px;}
+  .summary ol{margin:0;padding-left:20px;}.summary li{margin:5px 0;font-size:15.5px;}
+  .widget{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;margin:26px 0;box-shadow:0 6px 22px rgba(80,60,30,.06);}
+  .widget .wlabel{display:inline-block;font-size:11.5px;font-weight:700;letter-spacing:.14em;color:#fff;background:var(--accent);padding:4px 11px;border-radius:999px;margin-bottom:16px;}
+  .wdesc{font-size:14.5px;margin-bottom:14px;color:var(--sub);}
+  .btn{border:none;background:var(--accent);color:#fff;font-family:var(--sans);font-weight:700;font-size:13.5px;padding:9px 18px;border-radius:9px;cursor:pointer;}
+  .btn.ghost{background:#fdfaf4;border:1px solid var(--line);color:var(--sub);}
+
+  /* W1: memory on/off */
+  .mo-toggle{display:flex;gap:8px;margin-bottom:14px;}
+  .mobtn{flex:1;border:1.5px solid var(--line);background:#fff;border-radius:9px;padding:11px;cursor:pointer;font-family:var(--sans);font-weight:700;font-size:13px;color:var(--sub);transition:.15s;}
+  .mobtn.on.off{border-color:#b4451f;background:#f3ddd2;color:#9a3a14;}
+  .mobtn.on.mem{border-color:var(--teal);background:#d8e8e3;color:#225349;}
+  .mo-chat{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px;}
+  .mo-bubble{border-radius:9px;padding:8px 12px;margin:6px 0;font-size:13px;max-width:85%;}
+  .mo-bubble.u{background:var(--accent-soft);margin-left:auto;}
+  .mo-bubble.a{background:#eef0ee;}
+  .mo-verdict{margin-top:10px;font-size:13px;font-weight:700;padding:9px;border-radius:8px;text-align:center;}
+  .mo-verdict.ok{background:#d8e8e3;color:#225349;}.mo-verdict.no{background:#f3ddd2;color:#9a3a14;}
+
+  /* W2: checkpointer note */
+  .cp-stage{display:flex;align-items:center;gap:14px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;}
+  .cp-agent{flex:none;text-align:center;font-size:13px;}
+  .cp-agent .em{font-size:34px;}
+  .cp-arrow{flex:none;color:var(--gold);font-size:18px;}
+  .cp-note{flex:1;border:2px solid var(--teal);border-radius:10px;padding:12px;background:#f0f6f4;}
+  .cp-note .nt{font-size:11px;font-weight:700;color:var(--teal);margin-bottom:6px;}
+  .cp-line{font-size:12px;padding:3px 0;border-bottom:1px dashed var(--line);}
+  .cp-line:last-child{border:none;}
+  .cp-ctl{margin-top:12px;display:flex;gap:8px;align-items:center;}
+
+  /* W3: thread switch (핵심) */
+  .th-tabs{display:flex;gap:8px;margin-bottom:12px;}
+  .thtab{flex:1;border:1.5px solid var(--line);background:#fff;border-radius:10px;padding:10px;cursor:pointer;text-align:center;font-family:var(--sans);font-weight:700;font-size:13px;color:var(--sub);transition:.15s;}
+  .thtab.on{border-color:var(--accent);background:var(--accent);color:#fff;}
+  .th-id{font-family:monospace;font-size:11px;opacity:.8;}
+  .th-chat{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px;min-height:120px;}
+  .th-bubble{border-radius:9px;padding:7px 11px;margin:5px 0;font-size:12.5px;max-width:88%;}
+  .th-bubble.u{background:var(--accent-soft);margin-left:auto;}
+  .th-bubble.a{background:#eef0ee;}
+  .th-empty{color:#b3a995;font-size:12.5px;text-align:center;padding:30px 0;}
+  .th-qs{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+  .thq{border:1.5px solid var(--line);background:#fdfaf4;border-radius:999px;padding:6px 12px;font-size:12px;cursor:pointer;font-family:var(--sans);transition:.15s;}
+  .thq:hover{border-color:var(--accent-soft);}
+
+  /* W4: multi-user */
+  .mu-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .mu-col{border:1.5px solid var(--line);border-radius:11px;padding:12px;background:#fff;}
+  .mu-col.a{border-color:var(--accent);}
+  .mu-col.b{border-color:var(--teal);}
+  .mu-h{font-family:var(--serif);font-weight:700;font-size:13px;text-align:center;padding:5px;border-radius:7px;margin-bottom:8px;}
+  .mu-col.a .mu-h{background:var(--accent-soft);color:#8a3408;}
+  .mu-col.b .mu-h{background:#d8e8e3;color:#225349;}
+  .mu-msg{font-size:11.5px;padding:5px 8px;border-radius:7px;margin:4px 0;background:#fdfaf4;}
+  .mu-msg .who{font-weight:700;}
+  .mu-result{margin-top:12px;text-align:center;font-size:12.5px;color:var(--sub);}
+
+  /* W5: state inspector */
+  .si-stage{background:#2b2723;border-radius:10px;padding:14px;font-family:monospace;font-size:12px;color:#cfc5b4;}
+  .si-key{color:#e0935f;}
+  .si-msg{color:#9ec79a;padding:2px 0;}
+  .si-meta{color:#8b8175;}
+  .si-note{margin-top:12px;background:#fbf3e6;border-radius:9px;padding:11px 13px;font-size:13px;color:#7a5a2a;}
+
+  footer{max-width:var(--maxw);margin:0 auto;padding:30px 22px 80px;color:var(--sub);font-size:14px;border-top:1px solid var(--line);}
+  .next-card{background:linear-gradient(135deg,#fbf8f2,#f0f6f4);border:1px solid var(--line);border-radius:14px;padding:20px;margin:20px 0 0;}
+  .next-card .nl{font-size:12px;letter-spacing:.14em;color:var(--teal);font-weight:700;}
+  .next-card .nt{font-family:var(--serif);font-weight:700;font-size:18px;margin-top:4px;}
+  .reveal{opacity:0;transform:translateY(18px);transition:opacity .6s ease,transform .6s ease;}
+  .reveal.in{opacity:1;transform:none;}
+  @media(max-width:480px){body{font-size:16px;}.mu-grid{grid-template-columns:1fr;}.cp-stage{flex-direction:column;}}
+</style>
+</head>
+<body>
+<div id="progress"></div>
+
+<header class="hero">
+  <div class="eyebrow">LangChain 에이전트 마스터 · Part 10 · 중급 마무리</div>
+  <h1>메모리와 상태</h1>
+  <p class="lead">Part 9 에이전트는 대화를 기억 못 했음 — "아까 그 상품"을 못 이어감. 메모리를 더해 멀티턴을 기억하게 만들고, 그 기억이 사실 <strong>LangGraph의 상태(state)</strong>임을 밝히며 고급으로 가는 다리를 놓음.</p>
+  <div class="hero-meta">
+    <span class="chip">🟡 중급 · 10/18</span>
+    <span class="chip t">checkpointer · thread_id</span>
+    <span class="chip t">예상 35분</span>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- Section 1: memory on/off -->
+  <section class="reveal">
+    <div class="sec-no">10-1</div>
+    <h2>에이전트도 매번 잊는다</h2>
+    <p>Part 1에서 "모델은 기억력이 없다"고 배웠음. <strong>에이전트도 마찬가지</strong>임. 메모리가 없으면 매 호출이 독립적이라, 방금 한 말도 잊는 상담원이 됨.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 메모리 있을 때 vs 없을 때</span>
+      <p class="wdesc">"베이지 니트 재고?" → "그거 반품 돼?"라고 이어 물었을 때, 메모리 유무에 따라 답이 어떻게 달라지는지 봄.</p>
+      <div class="mo-toggle" id="w1tog">
+        <button class="mobtn on off" data-k="off">🚫 메모리 없음</button>
+        <button class="mobtn mem" data-k="mem">✅ 메모리 있음</button>
+      </div>
+      <div class="mo-chat" id="w1chat"></div>
+      <div class="mo-verdict" id="w1verdict"></div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;여기서 다루는 건 <b>단기 메모리</b>(한 대화 내 맥락 유지)임. 세션을 넘어 사용자 선호를 기억하는 장기 메모리는 별도 개념으로 더 복잡한 저장소를 씀.</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>에이전트도 매 호출이 독립적이라 기본적으로 기억 못 함.</li>
+      <li>메모리는 "이전 대화를 저장했다 불러오는" 일을 자동화함.</li>
+      <li>단기 메모리(한 대화 내 맥락)가 이 파트의 주제임.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 2: checkpointer -->
+  <section class="reveal">
+    <div class="sec-no">10-2</div>
+    <h2>체크포인터 — 상담 기록 노트</h2>
+    <p>메모리를 주는 장치가 <strong>체크포인터</strong>임. <code>InMemorySaver()</code>를 <code>create_agent</code>의 <code>checkpointer</code>에 넣으면 끝. 상담원 옆에 둔 기록 노트처럼, 대화를 적어뒀다 다시 펼침.</p>
+    <pre><code><span class="k">from</span> langgraph.checkpoint.memory <span class="k">import</span> InMemorySaver
+
+agent = create_agent(
+    model=model, tools=[get_stock],
+    checkpointer=InMemorySaver(),   <span class="c"># ← 메모리 장착</span>
+)</code></pre>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 노트에 기록되는 과정</span>
+      <p class="wdesc">"기록하기"를 누를 때마다 에이전트가 대화를 노트(체크포인터)에 저장하는 모습을 봄.</p>
+      <div class="cp-stage">
+        <div class="cp-agent"><div class="em">🤖</div>에이전트</div>
+        <div class="cp-arrow">✏️→</div>
+        <div class="cp-note">
+          <div class="nt">📒 체크포인터 (상담 기록 노트)</div>
+          <div id="w2lines"><div class="cp-line" style="color:#b3a995">아직 기록 없음</div></div>
+        </div>
+      </div>
+      <div class="cp-ctl"><button class="btn" id="w2add">✏️ 대화 기록하기</button><button class="btn ghost" id="w2reset">↻</button></div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;<code>InMemorySaver</code>는 프로그램이 끝나면 기억이 사라짐(학습·프로토타입용). 실무는 <code>SqliteSaver</code>·<code>PostgresSaver</code> 같은 영속 체크포인터로 서버 재시작에도 대화를 유지함. 인터페이스는 거의 같음.</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>체크포인터는 에이전트에 메모리를 주는 장치임.</li>
+      <li><code>InMemorySaver()</code>를 <code>checkpointer</code>에 넣으면 장착됨.</li>
+      <li>호출 시점 상태를 저장했다 다시 불러와 대화를 이어줌.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 3: thread switch (핵심) -->
+  <section class="reveal">
+    <div class="sec-no">10-3 · 핵심</div>
+    <h2>thread_id — 대화를 구분하는 열쇠</h2>
+    <p>체크포인터를 붙였으면, <strong>이 대화가 어느 대화인지</strong>를 <code>thread_id</code>로 알려줘야 함. 같은 thread면 기억이 이어지고, 다른 thread면 별개 대화로 분리됨 — 기록 노트의 고객 이름표와 같음.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · thread를 바꿔 보기</span>
+      <p class="wdesc">먼저 thread A에서 "베이지 니트"를 얘기한 뒤, 같은/다른 thread에서 "그거 반품 돼?"를 물어보며 기억이 이어지는지 봄.</p>
+      <div class="th-tabs" id="w3tabs">
+        <div class="thtab on" data-k="A"><div>🧵 Thread A</div><div class="th-id">thread_id: "user-A"</div></div>
+        <div class="thtab" data-k="B"><div>🧵 Thread B</div><div class="th-id">thread_id: "user-B"</div></div>
+      </div>
+      <div class="th-chat" id="w3chat"></div>
+      <div class="th-qs" id="w3qs">
+        <button class="thq" data-m="베이지 니트 재고 있어요?">베이지 니트 재고 있어요?</button>
+        <button class="thq" data-m="그거 반품 돼요?">그거 반품 돼요?</button>
+      </div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;<code>config={"configurable": {"thread_id": ...}}</code>로 넘김. thread_id를 안 넘기거나 매번 바꾸면 기억이 안 이어짐("앞 대화를 잊는" 흔한 버그). 보통 사용자 ID·세션 ID를 thread_id로 씀.</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li><code>thread_id</code>는 "이 대화가 어느 대화인지"의 열쇠임.</li>
+      <li>같은 thread면 맥락 유지, 다르면 별개 대화로 분리됨.</li>
+      <li>체크포인터가 상태를 저장·조회하는 기본 키임.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 4: multi-user -->
+  <section class="reveal">
+    <div class="sec-no">10-4</div>
+    <h2>여러 사용자를 섞이지 않게</h2>
+    <p>thread_id별로 분리되므로, <strong>같은 에이전트 하나로 여러 손님을 동시에 응대</strong>해도 섞이지 않음. 이것이 실제 서비스의 기본 구조임.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 두 손님 동시 응대</span>
+      <p class="wdesc">"동시 응대"를 누르면, 손님A·손님B가 번갈아 "그거"라고 물어도 각자의 '그거'를 정확히 구분하는 걸 봄.</p>
+      <div class="mu-grid">
+        <div class="mu-col a"><div class="mu-h">🧵 손님A (베이지 니트)</div><div id="w4a"></div></div>
+        <div class="mu-col b"><div class="mu-h">🧵 손님B (트렌치 코트)</div><div id="w4b"></div></div>
+      </div>
+      <div class="mu-result" id="w4result"></div>
+      <div style="margin-top:12px;text-align:center;"><button class="btn" id="w4run">▶ 동시 응대</button></div>
+    </div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>thread_id별 분리로 한 에이전트가 여러 사용자를 동시에 응대함.</li>
+      <li>각자의 "그거"가 섞이지 않고 정확히 구분됨.</li>
+      <li>사용자 ID·세션 ID를 thread_id로 부여하는 것이 실무 기본임.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 5: state inspector -->
+  <section class="reveal">
+    <div class="sec-no">10-5</div>
+    <h2>"메모리"의 정체 — LangGraph의 상태</h2>
+    <p>지금까지 "메모리"라 부른 것은 사실 <strong>LangGraph의 상태(state)</strong>임. 에이전트는 LangGraph 위에서 돌고(Part 0·9), 그 런타임이 들고 도는 것이 상태 — messages를 포함한 "대화의 현재 모습" 전체임. 보드게임의 현재 판과 같음.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · thread의 상태 들여다보기</span>
+      <p class="wdesc"><code>agent.get_state(...)</code>로 특정 thread의 상태를 꺼내봄. 이 "messages를 담은 판"이 고급에서 직접 다룰 state임.</p>
+      <div class="si-stage" id="w5stage"></div>
+      <div class="si-note" id="w5note">▶ "상태 조회"를 눌러보세요.</div>
+      <div style="margin-top:12px;"><button class="btn" id="w5run">🔍 상태 조회 (get_state)</button></div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;이 파트는 중급의 마지막이자 고급의 예고편임. "에이전트가 기억한다"는 편리함 뒤에 "LangGraph가 상태를 들고 돈다"는 구조가 있고, 그 상태를 직접 정의·제어하는 것이 고급(Part 12~)의 핵심임.</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>"메모리"는 사실 LangGraph의 상태를 저장·복원하는 것임.</li>
+      <li>상태는 messages를 포함한 "대화의 현재 모습" 전체임.</li>
+      <li>고급에서는 이 상태를 직접 정의·제어함 — 오늘이 입구임.</li>
+    </ol></div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="next-card">
+    <div class="nl">NEXT · PART 11 · 중급 졸업</div>
+    <div class="nt">중급 프로젝트 — 기억하는 상담/리서치 에이전트</div>
+    <p style="margin-top:8px;">도구·RAG·메모리를 모두 합친 완성형 에이전트를 처음부터 끝까지 만들고, 그 한계(분기·반복·사람 개입을 못 함)를 마주하며 고급(LangGraph)으로 넘어가는 문을 엶.</p>
+  </div>
+  <p style="margin-top:24px;">LangChain 에이전트 마스터 커리큘럼 · Part 10 / 18 · LangChain 1.0 기준</p>
+</footer>
+
+<script>
+const prog=document.getElementById('progress');
+addEventListener('scroll',()=>{const h=document.documentElement;prog.style.width=((h.scrollTop)/(h.scrollHeight-h.clientHeight)*100)+'%';});
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('in');}),{threshold:.12});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+
+/* ===== W1: memory on/off ===== */
+const w1={
+  off:{msgs:[['u','베이지 니트 재고 있어요?'],['a','네, 12개 있습니다!'],['u','그거 반품 돼요?'],['a','어떤 상품을 말씀하시는 걸까요? 🤔']],
+    verdict:['no','❌ 두 번째 호출이 첫 대화를 모름 — "그거"가 뭔지 못 알아들음']},
+  mem:{msgs:[['u','베이지 니트 재고 있어요?'],['a','네, 12개 있습니다!'],['u','그거 반품 돼요?'],['a','베이지 니트는 수령 후 7일 이내 반품 가능합니다 😊']],
+    verdict:['ok','✅ 메모리가 첫 대화를 기억 — "그거"=베이지 니트로 이해']}
+};
+function renderW1(k){
+  const d=w1[k];
+  document.getElementById('w1chat').innerHTML=d.msgs.map(([r,t])=>`<div class="mo-bubble ${r}">${t}</div>`).join('');
+  const v=document.getElementById('w1verdict');v.className='mo-verdict '+d.verdict[0];v.textContent=d.verdict[1];
+}
+document.querySelectorAll('#w1tog .mobtn').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('#w1tog .mobtn').forEach(x=>x.classList.remove('on'));b.classList.add('on');renderW1(b.dataset.k);}));
+renderW1('off');
+
+/* ===== W2: checkpointer ===== */
+const w2log=['🙋 "베이지 니트 재고?"','🤖 "12개 있습니다"','🙋 "그거 반품 돼요?"','🤖 "7일 이내 가능합니다"'];
+let w2n=0;
+function renderW2(){
+  const box=document.getElementById('w2lines');
+  if(w2n===0){box.innerHTML='<div class="cp-line" style="color:#b3a995">아직 기록 없음</div>';}
+  else{box.innerHTML=w2log.slice(0,w2n).map(l=>`<div class="cp-line">${l}</div>`).join('');}
+  document.getElementById('w2add').disabled=w2n>=w2log.length;
+  document.getElementById('w2add').textContent=w2n>=w2log.length?'✅ 노트에 다 기록됨':'✏️ 대화 기록하기';
+}
+document.getElementById('w2add').addEventListener('click',()=>{if(w2n<w2log.length){w2n++;renderW2();}});
+document.getElementById('w2reset').addEventListener('click',()=>{w2n=0;renderW2();});
+renderW2();
+
+/* ===== W3: thread switch ===== */
+const w3threads={A:[],B:[]};
+let w3cur='A';
+const w3answers={
+  '베이지 니트 재고 있어요?':'네, 베이지 니트 12개 있습니다!',
+};
+function w3answer(thread,msg){
+  // "그거" 류 질문: 해당 thread에 베이지 니트 맥락이 있으면 기억, 없으면 모름
+  if(msg.includes('그거')){
+    const hasCtx=w3threads[thread].some(([r,t])=>t.includes('베이지 니트'));
+    return hasCtx ? '베이지 니트는 7일 이내 반품 가능합니다 😊 (기억함)'
+                  : '어떤 상품을 말씀하시는 걸까요? 🤔 (이 thread엔 기록 없음)';
+  }
+  return w3answers[msg] || '네, 확인해 드릴게요!';
+}
+function renderW3(){
+  const arr=w3threads[w3cur];
+  const box=document.getElementById('w3chat');
+  if(!arr.length){box.innerHTML='<div class="th-empty">이 thread엔 아직 대화가 없음<br>아래 질문을 눌러보세요</div>';}
+  else{box.innerHTML=arr.map(([r,t])=>`<div class="th-bubble ${r}">${t}</div>`).join('');}
+}
+document.querySelectorAll('#w3tabs .thtab').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('#w3tabs .thtab').forEach(x=>x.classList.remove('on'));t.classList.add('on');w3cur=t.dataset.k;renderW3();}));
+document.querySelectorAll('#w3qs .thq').forEach(q=>q.addEventListener('click',()=>{
+  const msg=q.dataset.m;
+  w3threads[w3cur].push(['u',msg]);
+  w3threads[w3cur].push(['a',w3answer(w3cur,msg)]);
+  renderW3();
+}));
+renderW3();
+
+/* ===== W4: multi-user ===== */
+const w4seqA=[['🙋 A','베이지 니트 재고 있어요?'],['🤖','12개 있습니다'],['🙋 A','그거 반품 돼요?'],['🤖','베이지 니트는 7일 이내 가능 ✅']];
+const w4seqB=[['🙋 B','트렌치 코트 재고 있어요?'],['🤖','품절입니다'],['🙋 B','그거 언제 입고돼요?'],['🤖','트렌치 코트는 다음 주 입고 ✅']];
+document.getElementById('w4run').addEventListener('click',()=>{
+  const a=document.getElementById('w4a'),b=document.getElementById('w4b');
+  a.innerHTML='';b.innerHTML='';
+  document.getElementById('w4result').textContent='';
+  let i=0;
+  const tick=()=>{
+    if(i<w4seqA.length){
+      a.innerHTML+=`<div class="mu-msg"><span class="who">${w4seqA[i][0]}:</span> ${w4seqA[i][1]}</div>`;
+      b.innerHTML+=`<div class="mu-msg"><span class="who">${w4seqB[i][0]}:</span> ${w4seqB[i][1]}</div>`;
+      i++;setTimeout(tick,600);
+    }else{
+      document.getElementById('w4result').innerHTML='✅ 같은 에이전트 하나로 응대했지만, A의 "그거"=베이지 니트 / B의 "그거"=트렌치 코트로 <b>섞이지 않게</b> 구분함';
+    }
+  };
+  tick();
+});
+
+/* ===== W5: state inspector ===== */
+document.getElementById('w5run').addEventListener('click',()=>{
+  document.getElementById('w5stage').innerHTML=
+    `<span class="si-meta"># agent.get_state({"configurable": {"thread_id": "user-A"}})</span>\n`+
+    `<span class="si-key">state.values["messages"]</span> = [\n`+
+    `  <span class="si-msg">HumanMessage("베이지 니트 재고 있어요?")</span>\n`+
+    `  <span class="si-msg">AIMessage(tool_calls=[get_stock])</span>\n`+
+    `  <span class="si-msg">ToolMessage("재고: 12")</span>\n`+
+    `  <span class="si-msg">AIMessage("네, 12개 있습니다!")</span>\n`+
+    `  <span class="si-msg">HumanMessage("그거 반품 돼요?")</span>\n`+
+    `  <span class="si-msg">AIMessage("베이지 니트는 7일 이내...")</span>\n`+
+    `]  <span class="si-meta"># 6개 메시지 누적</span>`;
+  document.getElementById('w5note').innerHTML='📌 이 "messages를 담은 상태(state)"가 바로 LangGraph가 thread별로 관리하는 것. 고급(Part 13)에서는 이 상태에 우리가 원하는 정보를 직접 정의하고 제어함.';
+});
+</script>
+</body>
+</html>

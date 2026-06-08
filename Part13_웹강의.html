@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Part 13 · StateGraph 직접 짜기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Gowun+Dodum&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f4efe6;--card:#fbf8f2;--ink:#2b2723;--sub:#6f6457;--accent:#c2410c;
+    --accent-soft:#e9d5c4;--line:#e2d9c9;--teal:#2f6b5e;--gold:#a8762f;
+    --serif:'Gowun Batang',serif;--sans:'Gowun Dodum',sans-serif;--maxw:760px;color-scheme:light only;
+  }
+  @media (prefers-color-scheme:dark){:root{--bg:#f4efe6;--card:#fbf8f2;--ink:#2b2723;}}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.85;font-size:17px;-webkit-text-size-adjust:100%;
+    background-image:radial-gradient(circle at 20% 0%,rgba(194,65,12,.04),transparent 40%),radial-gradient(circle at 90% 100%,rgba(47,107,94,.04),transparent 45%);}
+  #progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:100;transition:width .1s linear;}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 22px;}
+  header.hero{max-width:var(--maxw);margin:0 auto;padding:88px 22px 40px;}
+  .eyebrow{color:var(--accent);font-size:13px;letter-spacing:.22em;font-weight:700;text-transform:uppercase;}
+  h1{font-family:var(--serif);font-weight:700;font-size:clamp(30px,6vw,46px);line-height:1.25;margin:14px 0 18px;letter-spacing:-.01em;}
+  .lead{font-size:18px;color:var(--sub);max-width:62ch;}
+  .hero-meta{margin-top:26px;display:flex;gap:10px;flex-wrap:wrap;}
+  .chip{font-size:12.5px;font-weight:700;letter-spacing:.04em;padding:6px 13px;border-radius:999px;background:var(--accent-soft);color:#8a3408;}
+  .chip.t{background:#d8e8e3;color:#225349;}
+  section{padding:54px 0 30px;border-top:1px solid var(--line);}
+  section:first-of-type{border-top:none;}
+  .sec-no{font-family:var(--serif);font-size:14px;color:var(--accent);font-weight:700;letter-spacing:.1em;}
+  h2{font-family:var(--serif);font-weight:700;font-size:clamp(23px,4.4vw,31px);margin:6px 0 20px;line-height:1.3;}
+  p{margin:0 0 16px;}
+  .sub{color:var(--sub);}
+  strong{color:var(--accent);font-weight:700;}
+  code{font-family:'Gowun Dodum',monospace;background:#efe7d8;color:#8a3408;padding:1.5px 7px;border-radius:6px;font-size:.92em;}
+  pre{background:#2b2723;color:#f4efe6;border-radius:12px;padding:16px 18px;overflow-x:auto;font-size:13.5px;line-height:1.7;margin:16px 0;}
+  pre code{background:none;color:inherit;padding:0;}
+  pre .k{color:#e0935f;}pre .s{color:#9ec79a;}pre .c{color:#8b8175;font-style:italic;}
+  .note{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px;padding:14px 18px;margin:18px 0;font-size:15.5px;color:var(--sub);}
+  .note b{color:var(--accent);}
+  .summary{background:#efe7d8;border-radius:12px;padding:18px 20px;margin:22px 0 4px;}
+  .summary .h{font-family:var(--serif);font-weight:700;color:var(--accent);font-size:15px;letter-spacing:.05em;margin-bottom:8px;}
+  .summary ol{margin:0;padding-left:20px;}.summary li{margin:5px 0;font-size:15.5px;}
+  .widget{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;margin:26px 0;box-shadow:0 6px 22px rgba(80,60,30,.06);}
+  .widget .wlabel{display:inline-block;font-size:11.5px;font-weight:700;letter-spacing:.14em;color:#fff;background:var(--accent);padding:4px 11px;border-radius:999px;margin-bottom:16px;}
+  .wdesc{font-size:14.5px;margin-bottom:14px;color:var(--sub);}
+  .btn{border:none;background:var(--accent);color:#fff;font-family:var(--sans);font-weight:700;font-size:13.5px;padding:9px 18px;border-radius:9px;cursor:pointer;}
+  .btn.ghost{background:#fdfaf4;border:1px solid var(--line);color:var(--sub);}
+  .btn[disabled]{opacity:.4;cursor:not-allowed;}
+
+  /* W1: reducer vs overwrite */
+  .rd-toggle{display:flex;gap:8px;margin-bottom:14px;}
+  .rdbtn{flex:1;border:1.5px solid var(--line);background:#fff;border-radius:9px;padding:10px;cursor:pointer;font-family:var(--sans);font-weight:700;font-size:12.5px;color:var(--sub);transition:.15s;}
+  .rdbtn.on{border-color:var(--accent);background:var(--accent);color:#fff;}
+  .rd-stage{background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px;}
+  .rd-field{font-family:monospace;font-size:12.5px;margin-bottom:8px;}
+  .rd-box{background:#2b2723;color:#9ec79a;border-radius:8px;padding:11px 13px;font-family:monospace;font-size:12.5px;min-height:24px;transition:.3s;}
+  .rd-step{display:inline-block;background:var(--accent-soft);color:#8a3408;font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;margin:0 4px 0 0;}
+  .rd-ctl{margin-top:12px;display:flex;gap:8px;align-items:center;}
+  .rd-cnt{font-size:12px;color:var(--sub);margin-left:auto;}
+
+  /* W2: node function */
+  .nf-flow{display:flex;align-items:stretch;gap:10px;}
+  .nf-side{flex:1;border:1.5px solid var(--line);border-radius:10px;padding:12px;background:#fdfaf4;}
+  .nf-side .t{font-size:11px;font-weight:700;color:var(--sub);margin-bottom:6px;}
+  .nf-side.in{border-color:var(--teal);}
+  .nf-side.out{border-color:var(--accent);}
+  .nf-row{font-family:monospace;font-size:11.5px;padding:3px 0;}
+  .nf-row.changed{color:var(--accent);font-weight:700;}
+  .nf-row.kept{color:var(--sub);}
+  .nf-mid{flex:none;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:11px;color:var(--sub);}
+  .nf-fn{background:var(--ink);color:#fff;border-radius:9px;padding:10px 8px;font-family:monospace;font-size:11px;text-align:center;}
+
+  /* W3/W5: graph canvas */
+  .gc-stage{background:#2b2723;border-radius:12px;padding:16px;}
+  .gc-svg{width:100%;max-width:440px;height:230px;display:block;margin:0 auto;}
+  .gc-ctl{margin-top:14px;display:flex;gap:8px;align-items:center;}
+  .gc-log{margin-top:12px;background:#fff;border:1px solid var(--line);border-radius:9px;padding:11px 13px;font-size:12.5px;min-height:40px;font-family:monospace;}
+  .gc-cnt{font-size:12px;color:var(--sub);margin-left:auto;}
+
+  /* W4: routing */
+  .rt-stage{background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px;}
+  .rt-state{font-family:monospace;font-size:12.5px;background:#efe7d8;border-radius:8px;padding:10px 13px;margin-bottom:12px;}
+  .rt-controls{display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;}
+  .rt-ctrl{flex:1;min-width:120px;}
+  .rt-ctrl label{font-size:11.5px;font-weight:700;color:var(--sub);display:block;margin-bottom:4px;}
+  .rt-seg{display:flex;gap:4px;}
+  .rt-seg button{flex:1;border:1.5px solid var(--line);background:#fdfaf4;border-radius:7px;padding:7px;font-size:11.5px;cursor:pointer;font-family:var(--sans);transition:.15s;}
+  .rt-seg button.on{border-color:var(--accent);background:var(--accent);color:#fff;}
+  .rt-result{padding:11px 13px;border-radius:9px;font-size:13.5px;font-weight:700;text-align:center;}
+  .rt-result.publish{background:#d8e8e3;color:#225349;}
+  .rt-result.revise{background:#fbf3e6;color:#8a5a1a;}
+  .rt-result.giveup{background:#f3ddd2;color:#9a3a14;}
+
+  footer{max-width:var(--maxw);margin:0 auto;padding:30px 22px 80px;color:var(--sub);font-size:14px;border-top:1px solid var(--line);}
+  .next-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin:20px 0 0;}
+  .next-card .nl{font-size:12px;letter-spacing:.14em;color:var(--accent);font-weight:700;}
+  .next-card .nt{font-family:var(--serif);font-weight:700;font-size:18px;margin-top:4px;}
+  .reveal{opacity:0;transform:translateY(18px);transition:opacity .6s ease,transform .6s ease;}
+  .reveal.in{opacity:1;transform:none;}
+  @media(max-width:480px){body{font-size:16px;}.nf-flow{flex-direction:column;}.rt-controls{flex-direction:column;}}
+</style>
+</head>
+<body>
+<div id="progress"></div>
+
+<header class="hero">
+  <div class="eyebrow">LangChain 에이전트 마스터 · Part 13</div>
+  <h1>StateGraph 직접 짜기</h1>
+  <p class="lead">Part 12에서 "왜"를 다뤘다면, 이제 그래프를 손으로 짬. 상태를 정의하고, 노드를 만들고, 엣지로 잇고, 조건 분기를 넣어 컴파일·실행함. 네 신호 중 <strong>①반복 ②분기 ③상태</strong>를 직접 구현함.</p>
+  <div class="hero-meta">
+    <span class="chip">🔴 고급 · 13/18</span>
+    <span class="chip t">StateGraph</span>
+    <span class="chip t">예상 50분</span>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- Section 1: state + reducer -->
+  <section class="reveal">
+    <div class="sec-no">13-1</div>
+    <h2>상태 정의 — 덮어쓰기 vs 누적</h2>
+    <p>그래프의 출발점은 상태(state)임 — 여러 부서를 거치는 <strong>결재 서류 봉투</strong>. <code>TypedDict</code>로 칸을 정의함. 핵심 구분: 노드가 키를 갱신할 때 기본은 <strong>덮어쓰기</strong>, 누적하려면 <strong>리듀서</strong>(<code>Annotated[list, operator.add]</code>)를 붙임.</p>
+    <pre><code><span class="k">class</span> State(TypedDict):
+    draft: str                              <span class="c"># 덮어쓰기</span>
+    history: Annotated[list, operator.add]  <span class="c"># 누적(리듀서)</span></code></pre>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 같은 갱신, 다른 결과</span>
+      <p class="wdesc">"단계 실행"을 누를 때마다 노드가 같은 갱신을 보냄. 리듀서 유무에 따라 결과가 어떻게 달라지는지 봄.</p>
+      <div class="rd-toggle" id="w1tog">
+        <button class="rdbtn on" data-k="overwrite">덮어쓰기 (리듀서 없음)</button>
+        <button class="rdbtn" data-k="reducer">누적 (operator.add)</button>
+      </div>
+      <div class="rd-stage">
+        <div class="rd-field" id="w1field"></div>
+        <div class="rd-box" id="w1box"></div>
+      </div>
+      <div class="rd-ctl">
+        <button class="btn" id="w1step">▶ 단계 실행</button>
+        <button class="btn ghost" id="w1reset">↻</button>
+        <span class="rd-cnt" id="w1cnt"></span>
+      </div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;상태는 <b>작고 명확하게</b>. 단계 간 꼭 전달할 정보만 담음. 누적이 필요한 것(기록·메시지·결과)만 리듀서를 붙이고, 나머지는 덮어쓰기로 둠. 메시지엔 전용 리듀서 <code>add_messages</code>를 씀.</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>상태는 그래프가 들고 다니며 갱신하는 데이터(TypedDict)임.</li>
+      <li>기본은 덮어쓰기, 누적은 리듀서(<code>Annotated[list, operator.add]</code>).</li>
+      <li>상태는 작고 명확하게 — 꼭 필요한 정보만.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 2: node function -->
+  <section class="reveal">
+    <div class="sec-no">13-2</div>
+    <h2>노드 — 상태 받아 부분 갱신</h2>
+    <p>노드는 "하나의 작업 단계" — <strong>상태를 받아 갱신할 부분만 딕셔너리로 돌려주는 함수</strong>임. 결재 봉투를 받은 담당자가 자기 칸만 채워 넘기듯, 안 돌려준 키는 그대로 유지됨.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 노드가 하는 일</span>
+      <p class="wdesc">"실행"을 누르면 <code>review_node</code>가 입력 상태를 받아, <code>review</code>·<code>history</code>만 갱신해 돌려주는 과정을 봄.</p>
+      <div class="nf-flow">
+        <div class="nf-side in">
+          <div class="t">입력 state</div>
+          <div class="nf-row" id="w2in-topic">topic: "AI 도입"</div>
+          <div class="nf-row" id="w2in-draft">draft: "...초안..."</div>
+          <div class="nf-row" id="w2in-review">review: ""</div>
+          <div class="nf-row" id="w2in-history">history: [초안]</div>
+        </div>
+        <div class="nf-mid"><div>→</div><div class="nf-fn">review<br>_node</div><div>→</div></div>
+        <div class="nf-side out">
+          <div class="t">반환 (갱신할 키만)</div>
+          <div id="w2out"></div>
+        </div>
+      </div>
+      <div style="margin-top:12px;"><button class="btn" id="w2run">▶ 노드 실행</button></div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;노드 안에서 무엇을 하든 자유 — 모델 호출, 도구 실행, 계산, 심지어 <code>create_agent</code> 에이전트 호출도 가능(Part 12 "노드 안 에이전트"). "상태→부분 갱신" 규칙만 지키면 됨. 상태를 직접 수정하지 않는 순수 함수라 테스트가 쉬움.</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>노드는 "상태 받아 갱신할 부분을 딕셔너리로 반환"하는 함수임.</li>
+      <li>갱신할 키만 반환하면 나머지는 유지됨(부분 갱신).</li>
+      <li>순수 함수라 예측·테스트가 쉬움.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 3: build graph (edges) -->
+  <section class="reveal">
+    <div class="sec-no">13-3</div>
+    <h2>엣지로 잇기 — 흐름 그리기</h2>
+    <p><code>add_node</code>로 등록, <code>add_edge(A, B)</code>로 "A 다음 <strong>항상</strong> B"를 고정 연결. <code>START</code>·<code>END</code>가 진입·종료점. 이렇게 이은 흐름은 <strong>무조건</strong> 그 순서 — 흐름 보장의 실체임.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 그래프 골격 그리기</span>
+      <p class="wdesc">"엣지 추가"를 누르며 START → 초안 → 검토 → END를 하나씩 연결해, 그래프가 완성되는 걸 봄.</p>
+      <div class="gc-stage"><svg class="gc-svg" id="w3svg" viewBox="0 0 440 100"></svg></div>
+      <div class="gc-ctl">
+        <button class="btn" id="w3step">＋ 엣지 추가</button>
+        <button class="btn ghost" id="w3reset">↻</button>
+        <span class="gc-cnt" id="w3cnt"></span>
+      </div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;여기까지는 일직선 흐름. 진짜 힘은 다음 절의 <b>조건 분기</b>와 <b>루프</b>에서 나옴 — "검토 결과에 따라 갈라지고, 필요하면 되돌아가는" 흐름임.</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li><code>add_node</code> 등록, <code>add_edge</code>로 "A 다음 B" 고정 연결.</li>
+      <li><code>START</code>/<code>END</code>가 진입점·종료점.</li>
+      <li>이은 흐름은 무조건 그 순서 — 흐름 보장의 실체임.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 4: conditional routing -->
+  <section class="reveal">
+    <div class="sec-no">13-4</div>
+    <h2>조건 분기 — 상태 따라 길 나누기</h2>
+    <p><code>add_conditional_edges</code>로 상태에 따라 다른 노드로 감. 검토팀이 봉투에 찍는 <strong>도장</strong>처럼 — "통과" 도장이면 발행팀, "반려"면 수정팀. 판단 규칙(<code>route</code> 함수)을 우리가 명시적으로 정함.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 라우팅 함수 돌려보기</span>
+      <p class="wdesc">검토 결과와 시도 횟수를 바꿔, <code>route_after_review</code>가 어느 노드로 분기하는지 봄.</p>
+      <div class="rt-stage">
+        <div class="rt-controls">
+          <div class="rt-ctrl">
+            <label>review (검토 결과)</label>
+            <div class="rt-seg" id="w4review"><button class="on" data-v="통과">통과</button><button data-v="반려">반려</button></div>
+          </div>
+          <div class="rt-ctrl">
+            <label>attempts (시도 횟수)</label>
+            <div class="rt-seg" id="w4attempts"><button class="on" data-v="0">0</button><button data-v="2">2</button><button data-v="3">3</button></div>
+          </div>
+        </div>
+        <div class="rt-state" id="w4state"></div>
+        <div class="rt-result" id="w4result"></div>
+      </div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;라우팅 함수는 상태만 보고 결정하는 단순 함수로 유지함. <code>END</code>를 돌려주면 그래프가 끝남. 분기 목적지가 <b>이전 노드</b>가 되면 루프(다음 절)가 됨.</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li><code>add_conditional_edges</code>로 상태에 따라 분기함.</li>
+      <li>라우팅 함수가 상태 보고 다음 노드 결정(코드가 명시적).</li>
+      <li>규칙대로 반드시 갈라짐 — 분기 보장임.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 5: compile + loop -->
+  <section class="reveal">
+    <div class="sec-no">13-5</div>
+    <h2>컴파일·실행, 그리고 루프</h2>
+    <p><code>compile()</code>로 실행 그래프를 만들고 <code>invoke</code>로 실행. 조건 분기의 목적지를 이전 노드로 두면 <strong>루프(반복)</strong>가 완성됨 — 통과 도장을 받을 때까지 검토-수정을 빙빙 돎. 단, <strong>종료 조건(횟수 제한)은 필수</strong>임.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 전체 그래프 실행</span>
+      <p class="wdesc">"한 단계씩"을 눌러, 초안→검토→(반려→수정→다시 검토)→통과→발행이 흐르는 과정을 따라감. 반려가 반복되면 루프가 돎.</p>
+      <div class="gc-stage"><svg class="gc-svg" id="w5svg" viewBox="0 0 440 230"></svg></div>
+      <div class="gc-log" id="w5log"></div>
+      <div class="gc-ctl">
+        <button class="btn" id="w5step">▶ 한 단계씩</button>
+        <button class="btn ghost" id="w5reset">↻</button>
+        <span class="gc-cnt" id="w5cnt"></span>
+      </div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;루프는 무한 반복 위험이 있어 <b>반드시 종료 조건</b>(횟수 제한 등)을 둠. <code>compile(checkpointer=InMemorySaver())</code>로 직접 만든 그래프에도 메모리를 붙일 수 있음(Part 10) — Part 14의 사람 개입(멈췄다 재개)이 여기서 이어짐.</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li><code>compile()</code>로 실행 그래프를 만들고 <code>invoke</code>로 실행.</li>
+      <li>뒤→앞 엣지로 루프를 만들며 종료 조건을 반드시 둠.</li>
+      <li>컴파일은 연결을 검사하고, 체크포인터로 메모리도 붙임.</li>
+    </ol></div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="next-card">
+    <div class="nl">NEXT · PART 14</div>
+    <div class="nt">Human-in-the-loop (사람 개입)</div>
+    <p style="margin-top:8px;">네 신호의 마지막 ④사람 개입 — 그래프를 특정 지점에 멈추고(<code>interrupt</code>) 사람의 승인을 받아 재개하는 흐름. Part 13의 체크포인터(상태 저장·재개) 위에서 구현함.</p>
+  </div>
+  <p style="margin-top:24px;">LangChain 에이전트 마스터 커리큘럼 · Part 13 / 18 · LangChain 1.0 기준</p>
+</footer>
+
+<script>
+const prog=document.getElementById('progress');
+addEventListener('scroll',()=>{const h=document.documentElement;prog.style.width=((h.scrollTop)/(h.scrollHeight-h.clientHeight)*100)+'%';});
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('in');}),{threshold:.12});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+
+/* ===== W1: reducer vs overwrite ===== */
+let w1mode='overwrite',w1n=0;
+const w1updates=['초안','검토','수정'];
+function renderW1(){
+  document.getElementById('w1field').innerHTML=w1mode==='overwrite'
+    ? 'history: list  <span style="color:#b4451f">(리듀서 없음 → 덮어쓰기)</span>'
+    : 'history: Annotated[list, <span style="color:#225349">operator.add</span>]  (누적)';
+  const box=document.getElementById('w1box');
+  if(w1n===0){box.textContent='history = []';}
+  else if(w1mode==='overwrite'){
+    box.innerHTML='history = ['+`<span class="rd-step">${w1updates[w1n-1]}</span>`+']  ← 매번 새 값으로 덮어씀';
+  }else{
+    box.innerHTML='history = ['+w1updates.slice(0,w1n).map(u=>`<span class="rd-step">${u}</span>`).join('')+']  ← 이어붙음';
+  }
+  document.getElementById('w1cnt').textContent=`노드 ${w1n}/3 실행`;
+  document.getElementById('w1step').disabled=w1n>=3;
+}
+document.querySelectorAll('#w1tog .rdbtn').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('#w1tog .rdbtn').forEach(x=>x.classList.remove('on'));b.classList.add('on');w1mode=b.dataset.k;w1n=0;renderW1();}));
+document.getElementById('w1step').addEventListener('click',()=>{if(w1n<3){w1n++;renderW1();}});
+document.getElementById('w1reset').addEventListener('click',()=>{w1n=0;renderW1();});
+renderW1();
+
+/* ===== W2: node function ===== */
+document.getElementById('w2run').addEventListener('click',()=>{
+  const out=document.getElementById('w2out');
+  out.innerHTML='';
+  setTimeout(()=>{
+    out.innerHTML=
+      '<div class="nf-row changed">review: "통과"</div>'+
+      '<div class="nf-row changed">history: ["검토"]</div>'+
+      '<div class="nf-row kept" style="margin-top:6px;font-size:10.5px">(topic·draft는 반환 안 함 → 유지)</div>';
+    // 입력에서 바뀌는 칸 강조
+    document.getElementById('w2in-review').classList.add('kept');
+  },300);
+});
+
+/* ===== W3: build edges ===== */
+const w3nodes=[
+  {id:'START',x:30,label:'START',color:'#6f6457'},
+  {id:'draft',x:150,label:'초안',color:'#2f6b5e'},
+  {id:'review',x:270,label:'검토',color:'#2f6b5e'},
+  {id:'END',x:390,label:'END',color:'#6f6457'},
+];
+let w3edges=0;
+function renderW3(){
+  let svg='';
+  // edges
+  for(let i=0;i<w3edges;i++){
+    const a=w3nodes[i],b=w3nodes[i+1];
+    svg+=`<path d="M${a.x+28} 50 L${b.x-28} 50" stroke="#e8c07d" stroke-width="2.5" marker-end="url(#a13)"/>`;
+  }
+  // nodes
+  w3nodes.forEach((n,i)=>{
+    const active=i<=w3edges;
+    svg+=`<circle cx="${n.x}" cy="50" r="26" fill="${active?n.color:'#4a443c'}" opacity="${active?1:.5}"/>`;
+    svg+=`<text x="${n.x}" y="54" font-size="11" fill="#fff" text-anchor="middle">${n.label}</text>`;
+  });
+  svg+=`<defs><marker id="a13" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="#e8c07d"/></marker></defs>`;
+  document.getElementById('w3svg').innerHTML=svg;
+  const labels=['add_edge(START, "draft")','add_edge("draft", "review")','add_edge("review", END)'];
+  document.getElementById('w3cnt').textContent=w3edges>0?labels[w3edges-1]:'엣지 0/3';
+  document.getElementById('w3step').disabled=w3edges>=3;
+}
+document.getElementById('w3step').addEventListener('click',()=>{if(w3edges<3){w3edges++;renderW3();}});
+document.getElementById('w3reset').addEventListener('click',()=>{w3edges=0;renderW3();});
+renderW3();
+
+/* ===== W4: routing ===== */
+const w4state={review:'통과',attempts:0};
+function renderW4(){
+  document.getElementById('w4state').textContent=`route_after_review({review: "${w4state.review}", attempts: ${w4state.attempts}})`;
+  let dest,cls,txt;
+  if(w4state.review==='통과'){dest='publish';cls='publish';txt='→ "publish" (발행 노드로) ✅';}
+  else if(w4state.attempts>=3){dest='give_up';cls='giveup';txt='→ "give_up" (3회 초과, 강제 종료) ⛔';}
+  else{dest='revise';cls='revise';txt='→ "revise" (수정 노드로, 루프) 🔁';}
+  const r=document.getElementById('w4result');r.className='rt-result '+cls;r.textContent=txt;
+}
+document.querySelectorAll('#w4review button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('#w4review button').forEach(x=>x.classList.remove('on'));b.classList.add('on');w4state.review=b.dataset.v;renderW4();}));
+document.querySelectorAll('#w4attempts button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('#w4attempts button').forEach(x=>x.classList.remove('on'));b.classList.add('on');w4state.attempts=+b.dataset.v;renderW4();}));
+renderW4();
+
+/* ===== W5: full graph run ===== */
+const w5pos={draft:{x:90,y:50},review:{x:230,y:50},revise:{x:230,y:170},publish:{x:390,y:50},END:{x:390,y:170}};
+// 시나리오: draft→review(반려)→revise→draft→review(통과)→publish
+const w5seq=[
+  {node:'draft',log:'[draft] 초안 작성 (시도 1)'},
+  {node:'review',log:'[review] 검토 → 반려 (근거 부족)'},
+  {node:'revise',log:'[revise] 수정 지시 → 루프로'},
+  {node:'draft',log:'[draft] 초안 보강 (시도 2)'},
+  {node:'review',log:'[review] 검토 → 통과 ✅'},
+  {node:'publish',log:'[publish] 발행 완료'},
+];
+let w5i=0;
+function drawW5(active){
+  let svg='';
+  // edges
+  const edges=[['draft','review'],['review','publish'],['review','revise'],['revise','draft'],['publish','END']];
+  edges.forEach(([a,b])=>{
+    const p=w5pos[a],q=w5pos[b];
+    const dash=(a==='revise'||b==='revise')?'stroke-dasharray="4 3"':'';
+    svg+=`<path d="M${p.x} ${p.y} Q${(p.x+q.x)/2} ${(p.y+q.y)/2-15} ${q.x} ${q.y}" stroke="#5a5048" stroke-width="2" fill="none" ${dash} marker-end="url(#a5)"/>`;
+  });
+  // nodes
+  Object.entries(w5pos).forEach(([id,p])=>{
+    const on=id===active;
+    const labels={draft:'초안',review:'검토',revise:'수정',publish:'발행',END:'END'};
+    const col=id==='publish'?'#c2410c':id==='revise'?'#a8762f':id==='END'?'#6f6457':'#2f6b5e';
+    svg+=`<circle cx="${p.x}" cy="${p.y}" r="26" fill="${col}" opacity="${on?1:.55}" ${on?'stroke="#f4efe6" stroke-width="3"':''}/>`;
+    svg+=`<text x="${p.x}" y="${p.y+4}" font-size="11" fill="#fff" text-anchor="middle">${labels[id]}</text>`;
+  });
+  svg+=`<defs><marker id="a5" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="#5a5048"/></marker></defs>`;
+  document.getElementById('w5svg').innerHTML=svg;
+}
+function renderW5(){
+  const active=w5i>0?w5seq[w5i-1].node:null;
+  drawW5(active);
+  document.getElementById('w5log').innerHTML=w5seq.slice(0,w5i).map(s=>s.log).join('<br>')||'▶ "한 단계씩"을 눌러 그래프를 실행하세요';
+  document.getElementById('w5cnt').textContent=`단계 ${w5i}/${w5seq.length}`+(w5i>=3&&w5i<=4?' · 🔁 루프!':'');
+  document.getElementById('w5step').disabled=w5i>=w5seq.length;
+  document.getElementById('w5step').textContent=w5i>=w5seq.length?'✅ 완료':'▶ 한 단계씩';
+}
+document.getElementById('w5step').addEventListener('click',()=>{if(w5i<w5seq.length){w5i++;renderW5();}});
+document.getElementById('w5reset').addEventListener('click',()=>{w5i=0;renderW5();});
+renderW5();
+</script>
+</body>
+</html>

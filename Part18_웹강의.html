@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Part 18 · 최종 프로젝트 — 문서 제작 파이프라인</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Gowun+Dodum&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f4efe6;--card:#fbf8f2;--ink:#2b2723;--sub:#6f6457;--accent:#c2410c;
+    --accent-soft:#e9d5c4;--line:#e2d9c9;--teal:#2f6b5e;--gold:#a8762f;
+    --serif:'Gowun Batang',serif;--sans:'Gowun Dodum',sans-serif;--maxw:760px;color-scheme:light only;
+  }
+  @media (prefers-color-scheme:dark){:root{--bg:#f4efe6;--card:#fbf8f2;--ink:#2b2723;}}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.85;font-size:17px;-webkit-text-size-adjust:100%;
+    background-image:radial-gradient(circle at 20% 0%,rgba(194,65,12,.04),transparent 40%),radial-gradient(circle at 90% 100%,rgba(47,107,94,.04),transparent 45%);}
+  #progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:100;transition:width .1s linear;}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 22px;}
+  header.hero{max-width:var(--maxw);margin:0 auto;padding:88px 22px 40px;}
+  .eyebrow{color:var(--accent);font-size:13px;letter-spacing:.22em;font-weight:700;text-transform:uppercase;}
+  h1{font-family:var(--serif);font-weight:700;font-size:clamp(30px,6vw,46px);line-height:1.25;margin:14px 0 18px;letter-spacing:-.01em;}
+  .lead{font-size:18px;color:var(--sub);max-width:62ch;}
+  .hero-meta{margin-top:26px;display:flex;gap:10px;flex-wrap:wrap;}
+  .chip{font-size:12.5px;font-weight:700;letter-spacing:.04em;padding:6px 13px;border-radius:999px;background:var(--accent-soft);color:#8a3408;}
+  .chip.t{background:#d8e8e3;color:#225349;}
+  .chip.g{background:var(--teal);color:#fff;}
+  section{padding:54px 0 30px;border-top:1px solid var(--line);}
+  section:first-of-type{border-top:none;}
+  .sec-no{font-family:var(--serif);font-size:14px;color:var(--accent);font-weight:700;letter-spacing:.1em;}
+  h2{font-family:var(--serif);font-weight:700;font-size:clamp(23px,4.4vw,31px);margin:6px 0 20px;line-height:1.3;}
+  p{margin:0 0 16px;}
+  .sub{color:var(--sub);}
+  strong{color:var(--accent);font-weight:700;}
+  code{font-family:'Gowun Dodum',monospace;background:#efe7d8;color:#8a3408;padding:1.5px 7px;border-radius:6px;font-size:.92em;}
+  pre{background:#2b2723;color:#f4efe6;border-radius:12px;padding:16px 18px;overflow-x:auto;font-size:13.5px;line-height:1.7;margin:16px 0;}
+  pre code{background:none;color:inherit;padding:0;}
+  pre .k{color:#e0935f;}pre .s{color:#9ec79a;}pre .c{color:#8b8175;font-style:italic;}
+  .note{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px;padding:14px 18px;margin:18px 0;font-size:15.5px;color:var(--sub);}
+  .note b{color:var(--accent);}
+  .summary{background:#efe7d8;border-radius:12px;padding:18px 20px;margin:22px 0 4px;}
+  .summary .h{font-family:var(--serif);font-weight:700;color:var(--accent);font-size:15px;letter-spacing:.05em;margin-bottom:8px;}
+  .summary ol{margin:0;padding-left:20px;}.summary li{margin:5px 0;font-size:15.5px;}
+  .widget{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;margin:26px 0;box-shadow:0 6px 22px rgba(80,60,30,.06);}
+  .widget .wlabel{display:inline-block;font-size:11.5px;font-weight:700;letter-spacing:.14em;color:#fff;background:var(--accent);padding:4px 11px;border-radius:999px;margin-bottom:16px;}
+  .wdesc{font-size:14.5px;margin-bottom:14px;color:var(--sub);}
+  .btn{border:none;background:var(--accent);color:#fff;font-family:var(--sans);font-weight:700;font-size:13.5px;padding:9px 18px;border-radius:9px;cursor:pointer;}
+  .btn.ghost{background:#fdfaf4;border:1px solid var(--line);color:var(--sub);}
+  .btn[disabled]{opacity:.4;cursor:not-allowed;}
+
+  /* W1: architecture layers */
+  .ar-stage{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;}
+  .ar-layer{border:1.5px solid var(--line);border-radius:11px;padding:12px;margin:8px 0;cursor:pointer;transition:.2s;}
+  .ar-layer.graph{border-color:var(--teal);background:#eef5f3;}
+  .ar-layer.agent{border-color:var(--accent);background:#fdf2ec;margin-left:24px;}
+  .ar-layer.tool{border-color:var(--gold);background:#fbf3e6;margin-left:48px;}
+  .ar-layer .lt{font-weight:700;font-size:13px;}
+  .ar-layer .lp{font-size:10.5px;color:var(--sub);}
+  .ar-layer.on{box-shadow:0 4px 14px rgba(80,60,30,.12);transform:translateX(2px);}
+  .ar-detail{margin-top:12px;background:#efe7d8;border-radius:9px;padding:12px 14px;font-size:13px;}
+
+  /* W2/W4: pipeline graph */
+  .pg-stage{background:#2b2723;border-radius:12px;padding:18px;}
+  .pg-svg{width:100%;max-width:440px;height:250px;display:block;margin:0 auto;}
+  .pg-log{margin-top:12px;background:#fff;border:1px solid var(--line);border-radius:9px;padding:11px 13px;font-size:12px;min-height:44px;font-family:monospace;}
+  .pg-ctl{margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .pg-cnt{font-size:12px;color:var(--sub);margin-left:auto;}
+
+  /* W3: fill nodes */
+  .fn-grid{display:flex;flex-direction:column;gap:8px;}
+  .fn-node{display:flex;align-items:center;gap:12px;border:1.5px solid var(--line);border-radius:10px;padding:11px 13px;background:#fff;cursor:pointer;transition:.2s;}
+  .fn-node.on{border-color:var(--accent);background:#fdf2ec;}
+  .fn-node .ne{flex:none;font-size:20px;}
+  .fn-node .nn{font-family:monospace;font-weight:700;font-size:12.5px;}
+  .fn-node .nfill{font-size:11px;color:var(--sub);}
+  .fn-node .badge{flex:none;font-size:9.5px;font-weight:700;padding:3px 8px;border-radius:999px;margin-left:auto;}
+  .fn-node .badge.agent{background:var(--accent);color:#fff;}
+  .fn-node .badge.chain{background:var(--gold);color:#fff;}
+  .fn-node .badge.judge{background:var(--teal);color:#fff;}
+  .fn-node .badge.hitl{background:#7a4fa0;color:#fff;}
+  .fn-detail{margin-top:12px;background:#efe7d8;border-radius:9px;padding:12px 14px;font-size:13px;}
+
+  /* W5: journey */
+  .jn-levels{display:flex;flex-direction:column;gap:10px;}
+  .jn-level{border-radius:12px;padding:14px;border:1.5px solid var(--line);}
+  .jn-level.beg{background:#eef5f3;border-color:#bcdcd3;}
+  .jn-level.mid{background:#fbf3e6;border-color:#e8d4a8;}
+  .jn-level.adv{background:#fbeae3;border-color:#e6c3b3;}
+  .jn-h{font-family:var(--serif);font-weight:700;font-size:14px;margin-bottom:6px;}
+  .jn-parts{display:flex;flex-wrap:wrap;gap:4px;}
+  .jn-part{font-size:10.5px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:3px 9px;}
+  .jn-principle{margin-top:16px;text-align:center;font-family:var(--serif);font-size:16px;color:var(--accent);font-weight:700;padding:14px;background:#efe7d8;border-radius:12px;}
+
+  footer{max-width:var(--maxw);margin:0 auto;padding:30px 22px 80px;color:var(--sub);font-size:14px;border-top:1px solid var(--line);}
+  .grad{text-align:center;padding:30px;background:linear-gradient(135deg,#fbf8f2,#f0f6f4);border:1px solid var(--line);border-radius:16px;margin:20px 0;}
+  .grad .cap{font-size:40px;}
+  .grad .t{font-family:var(--serif);font-weight:700;font-size:22px;margin:10px 0 6px;}
+  .grad .s{font-size:14px;color:var(--sub);}
+  .reveal{opacity:0;transform:translateY(18px);transition:opacity .6s ease,transform .6s ease;}
+  .reveal.in{opacity:1;transform:none;}
+  @media(max-width:480px){body{font-size:16px;}.ar-layer.agent{margin-left:14px;}.ar-layer.tool{margin-left:28px;}}
+</style>
+</head>
+<body>
+<div id="progress"></div>
+
+<header class="hero">
+  <div class="eyebrow">LangChain 에이전트 마스터 · Part 18 · 졸업 프로젝트</div>
+  <h1>최종 프로젝트<br>문서 제작 파이프라인</h1>
+  <p class="lead">18개 파트의 모든 것을 하나로 묶음. 그래프(흐름 보장) 안에 에이전트·RAG·체인을 계층적으로 결합하고, 발행 전 사람 승인과 영속·안전장치까지 — "조사→작성→검토→승인→발행"이 보장되는 프로덕션급 시스템. 종합과 졸업의 시간.</p>
+  <div class="hero-meta">
+    <span class="chip g">🎓 졸업 · 18/18</span>
+    <span class="chip t">전체 결합</span>
+    <span class="chip t">예상 60분</span>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- Section 1: architecture -->
+  <section class="reveal">
+    <div class="sec-no">18-1</div>
+    <h2>최종 설계 — 계층적 아키텍처</h2>
+    <p>핵심은 <strong>각 도구를 올바른 자리에</strong> 두는 것(Part 12 사다리·계층). 흐름 보장이 필요한 큰 공정은 그래프로, 그 안의 자유 작업은 에이전트로, 지식 조회는 RAG로 — <strong>그래프 안에 에이전트, 에이전트 안에 도구·RAG</strong>가 중첩됨.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 중첩된 계층</span>
+      <p class="wdesc">각 층을 눌러, 어디에 무엇을 왜 쓰는지 봄. 안으로 들어갈수록 더 작은 단위.</p>
+      <div class="ar-stage">
+        <div class="ar-layer graph on" data-k="graph"><div class="lt">🕸️ StateGraph — 전체 흐름 보장</div><div class="lp">Part 13 · 조사→작성→검토→승인→발행</div></div>
+        <div class="ar-layer agent" data-k="agent"><div class="lt">🧭 create_agent — research_node 안</div><div class="lp">Part 9 · 자유 판단(무엇을 얼마나 조사할지)</div></div>
+        <div class="ar-layer tool" data-k="tool"><div class="lt">🔧📕 도구 + RAG — 에이전트 안</div><div class="lp">Part 7·8 · search_reference로 자료 검색</div></div>
+      </div>
+      <div class="ar-detail" id="w1detail"></div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;설계의 첫 질문은 늘 "흐름을 보장해야 하나, 자유 판단이 좋나?". 보장이 필요한 큰 공정은 그래프, 그 안의 열린 작업은 에이전트 — 이 판단이 좋은 아키텍처의 출발임.</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>문서 제작 파이프라인 — 보장된 공정 + 자유로운 노드.</li>
+      <li>그래프 > 에이전트 > 도구·RAG의 계층이 중첩됨.</li>
+      <li>각 도구를 올바른 자리에 두는 것이 설계의 핵심.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 2: skeleton -->
+  <section class="reveal">
+    <div class="sec-no">18-2</div>
+    <h2>뼈대 — 흐름 먼저 확정</h2>
+    <p>노드를 채우기 전에 <strong>흐름 뼈대</strong>를 세움(Part 13·14). 조건 분기(통과/반려)·루프(반려→작성)·HITL 분기(승인/거부)가 한 그래프에 모임. 속을 채우기 전에 흐름을 먼저 확정·검증함.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 뼈대 그래프</span>
+      <p class="wdesc">완성된 파이프라인의 흐름. 각 단계가 어떻게 이어지고 어디서 갈라지는지 봄.</p>
+      <div class="pg-stage"><svg class="pg-svg" id="w2svg" viewBox="0 0 440 250"></svg></div>
+      <div style="font-size:12px;color:var(--sub);margin-top:10px;text-align:center;">
+        실선 = 고정 흐름 · 점선 = 조건 분기/루프 · 🟣 = 사람 개입(HITL)
+      </div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;노드는 일단 빈 함수로 두고 흐름부터 맞춘 뒤 <code>draw_ascii()</code>로 검증하는 것이 좋은 순서. 루프(반려→작성)엔 반드시 종료 조건(횟수 제한 + recursion_limit)을 함께 둠.</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>상태·노드·엣지·분기로 흐름 뼈대를 먼저 세움.</li>
+      <li>조건 분기·루프·HITL 분기가 한 그래프에 결합됨.</li>
+      <li>속을 채우기 전에 흐름을 먼저 확정·검증함.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 3: fill nodes -->
+  <section class="reveal">
+    <div class="sec-no">18-3</div>
+    <h2>속 채우기 — 자리에 맞는 도구</h2>
+    <p>빈 노드를 <strong>각 단계에 맞는 도구</strong>로 채움 — 자유 판단엔 에이전트, 정해진 변환엔 체인, 지식엔 RAG. 공정표에 전문가를 배치하듯.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 노드마다 무엇을 채울까</span>
+      <p class="wdesc">각 노드를 눌러, 무엇으로 채웠고 왜 그것인지 봄.</p>
+      <div class="fn-grid" id="w3grid">
+        <div class="fn-node on" data-k="research"><span class="ne">🔬</span><span><div class="nn">research_node</div><div class="nfill">자료 조사</div></span><span class="badge agent">에이전트+RAG</span></div>
+        <div class="fn-node" data-k="write"><span class="ne">✍️</span><span><div class="nn">write_node</div><div class="nfill">보고서 작성</div></span><span class="badge chain">체인</span></div>
+        <div class="fn-node" data-k="review"><span class="ne">🔎</span><span><div class="nn">review_node</div><div class="nfill">검토·판정</div></span><span class="badge judge">모델 판단</span></div>
+        <div class="fn-node" data-k="approval"><span class="ne">🙋</span><span><div class="nn">approval_node</div><div class="nfill">사람 승인</div></span><span class="badge hitl">HITL</span></div>
+      </div>
+      <div class="fn-detail" id="w3detail"></div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;여기서 계층이 실현됨 — 그래프 노드(<code>research_node</code>) 안에서 에이전트가 돌고, 그 안에서 RAG가 돎. 더 키우려면 조사·작성·검토를 전문 에이전트 + 감독자(Part 15)로 확장 가능.</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>빈 노드를 자리에 맞는 도구로 채움(에이전트·체인·RAG).</li>
+      <li>그래프>에이전트>RAG/체인 계층이 한 시스템에 중첩됨.</li>
+      <li>노드는 "상태→부분 갱신" 규칙만 지키면 내부는 자유.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 4: full run -->
+  <section class="reveal">
+    <div class="sec-no">18-4</div>
+    <h2>전체 실행 — 안전·운영까지</h2>
+    <p>HITL 승인(Part 14) + 영속·안전장치(Part 17) + 관측(Part 16)을 더해 운영 가능한 시스템 완성. "한 단계씩"으로 전 공정이 흐르는 걸 봄 — 반려 루프와 승인 멈춤을 포함해.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 파이프라인 전체 실행</span>
+      <p class="wdesc">조사→작성→검토(반려)→작성→검토(통과)→승인 대기→발행. 모든 파트가 하나로 작동함.</p>
+      <div class="pg-stage"><svg class="pg-svg" id="w4svg" viewBox="0 0 440 250"></svg></div>
+      <div class="pg-log" id="w4log"></div>
+      <div class="pg-ctl">
+        <button class="btn" id="w4step">▶ 한 단계씩</button>
+        <button class="btn ghost" id="w4reset">↻</button>
+        <span class="pg-cnt" id="w4cnt"></span>
+      </div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;체크포인터가 HITL(멈춤·재개)과 영속(재시작 유지)의 공통 토대. 운영 배포 시 <code>InMemorySaver</code>→<code>SqliteSaver</code>(거의 한 줄), 평가셋으로 품질 측정, 비용·지연 최적화 — 이 골격이 그 모든 걸 받을 준비가 됨.</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>발행 전 HITL 승인 + 영속 + 안전장치 + 관측을 더함.</li>
+      <li>체크포인터가 HITL과 영속의 공통 토대.</li>
+      <li>이 셋이 프로토타입을 운영 가능한 시스템으로 끌어올림.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 5: journey -->
+  <section class="reveal">
+    <div class="sec-no">18-5 · 졸업</div>
+    <h2>걸어온 길 — 전체 여정</h2>
+    <p>18개 파트를 완주했음. 우리가 만든 파이프라인 하나에 배운 모든 것이 담겨 있음.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 커리큘럼 지도</span>
+      <p class="wdesc">세 단계를 거쳐 온 여정. 각 레벨을 눌러 그 파트들을 봄.</p>
+      <div class="jn-levels">
+        <div class="jn-level beg">
+          <div class="jn-h">🟢 초급 — 기본기 (P0~5)</div>
+          <div class="jn-parts">
+            <span class="jn-part">1.0 그림</span><span class="jn-part">모델 호출</span><span class="jn-part">프롬프트</span><span class="jn-part">LCEL |</span><span class="jn-part">파서</span><span class="jn-part">미니 프로젝트</span>
+          </div>
+        </div>
+        <div class="jn-level mid">
+          <div class="jn-h">🟡 중급 — 에이전트 (P6~11)</div>
+          <div class="jn-parts">
+            <span class="jn-part">체인vs에이전트</span><span class="jn-part">도구</span><span class="jn-part">RAG</span><span class="jn-part">create_agent</span><span class="jn-part">메모리</span><span class="jn-part">문서 비서</span>
+          </div>
+        </div>
+        <div class="jn-level adv">
+          <div class="jn-h">🔴 고급 — 제어와 운영 (P12~18)</div>
+          <div class="jn-parts">
+            <span class="jn-part">왜 LangGraph</span><span class="jn-part">StateGraph</span><span class="jn-part">HITL</span><span class="jn-part">멀티에이전트</span><span class="jn-part">관측·평가</span><span class="jn-part">신뢰성</span><span class="jn-part">최종 프로젝트</span>
+          </div>
+        </div>
+      </div>
+      <div class="jn-principle">"올바른 도구를, 올바른 자리에, 필요한 만큼만."</div>
+    </div>
+
+    <div class="note"><b>📌 이제 무엇을</b> &nbsp;자신의 도메인 문제에 이 골격을 적용해 봄. 도구·RAG·노드를 자신의 것으로 바꾸고, 멀티에이전트·평가 자동화로 깊이 파며, 공식 문서로 최신 API를 확인하는 습관(이 강의도 매 파트 그랬듯)을 들임.</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>체인→에이전트→그래프·멀티·운영의 전 여정을 완주함.</li>
+      <li>관통 원칙: 올바른 도구를, 올바른 자리에, 필요한 만큼만.</li>
+      <li>이제 자신의 문제에 적용하며 공식 문서와 함께 계속 자람.</li>
+    </ol></div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="grad">
+    <div class="cap">🎓</div>
+    <div class="t">LangChain 에이전트 마스터 커리큘럼 완주</div>
+    <div class="s">Part 0~18 · 단순한 모델 호출부터 프로덕션급 멀티에이전트 시스템까지<br>이제 당신은 왜·언제·어떻게를 알고 만들 수 있음.</div>
+  </div>
+  <p style="margin-top:24px;text-align:center;">LangChain 에이전트 마스터 커리큘럼 · Part 18 / 18 · LangChain 1.0 기준 · 졸업 🎓</p>
+</footer>
+
+<script>
+const prog=document.getElementById('progress');
+addEventListener('scroll',()=>{const h=document.documentElement;prog.style.width=((h.scrollTop)/(h.scrollHeight-h.clientHeight)*100)+'%';});
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('in');}),{threshold:.12});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+
+/* ===== W1: architecture ===== */
+const w1={
+  graph:'<b>🕸️ StateGraph (Part 13)</b> — 가장 바깥 뼈대. "조사→작성→검토→승인→발행" 흐름을 보장. 검토 통과를 반드시 거치고, 승인 후에만 발행됨. 모델 기분에 흔들리지 않는 고정 공정.',
+  agent:'<b>🧭 create_agent (Part 9)</b> — research_node <b>안에서</b> 도는 완전한 에이전트. "무엇을 얼마나 조사할지"는 자유 판단이 좋으므로 에이전트. 그래프 노드 안에 에이전트가 들어가는 계층 결합(Part 12).',
+  tool:'<b>🔧📕 도구+RAG (Part 7·8)</b> — 에이전트 <b>안에서</b> 도는 가장 작은 단위. search_reference 도구가 RAG로 자료를 검색. 에이전트가 필요할 때만 호출. 그래프>에이전트>RAG/체인의 중첩 완성.'
+};
+function renderW1(k){
+  document.querySelectorAll('#w1detail').forEach(()=>{});
+  document.querySelectorAll('.ar-layer').forEach(l=>l.classList.toggle('on',l.dataset.k===k));
+  document.getElementById('w1detail').innerHTML=w1[k];
+}
+document.querySelectorAll('.ar-layer').forEach(l=>l.addEventListener('click',()=>renderW1(l.dataset.k)));
+renderW1('graph');
+
+/* ===== shared pipeline svg ===== */
+const pgPos={research:{x:75,y:45},write:{x:215,y:45},review:{x:355,y:45},approval:{x:355,y:150},publish:{x:215,y:150},end:{x:75,y:150}};
+const pgMeta={research:['🔬','조사','#2f6b5e'],write:['✍️','작성','#a8762f'],review:['🔎','검토','#2f6b5e'],approval:['🙋','승인','#7a4fa0'],publish:['📤','발행','#c2410c'],end:['🏁','끝','#6f6457']};
+function drawPipeline(svgId, active){
+  let svg='';
+  const edges=[['research','write','solid'],['write','review','solid'],['review','approval','dash'],['review','write','dash'],['approval','publish','dash'],['publish','end','solid']];
+  edges.forEach(([a,b,style])=>{
+    const p=pgPos[a],q=pgPos[b];
+    const d=style==='dash'?'stroke-dasharray="4 3"':'';
+    svg+=`<path d="M${p.x} ${p.y} Q${(p.x+q.x)/2} ${(p.y+q.y)/2 + (a==='review'&&b==='write'?-30:8)} ${q.x} ${q.y}" stroke="#5a5048" stroke-width="2" fill="none" ${d} marker-end="url(#pa)"/>`;
+  });
+  Object.entries(pgPos).forEach(([id,p])=>{
+    const on=id===active;const m=pgMeta[id];
+    svg+=`<circle cx="${p.x}" cy="${p.y}" r="26" fill="${m[2]}" opacity="${on?1:.55}" ${on?'stroke="#f4efe6" stroke-width="3"':''}/>`;
+    svg+=`<text x="${p.x}" y="${p.y-2}" font-size="14" text-anchor="middle">${m[0]}</text>`;
+    svg+=`<text x="${p.x}" y="${p.y+13}" font-size="8" fill="#fff" text-anchor="middle">${m[1]}</text>`;
+  });
+  svg+=`<defs><marker id="pa" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="#5a5048"/></marker></defs>`;
+  document.getElementById(svgId).innerHTML=svg;
+}
+drawPipeline('w2svg',null);
+
+/* ===== W3: fill nodes ===== */
+const w3={
+  research:'<b>research_node = 에이전트 + RAG</b> — "무엇을 얼마나 조사할지"는 자유 판단이 좋음 → create_agent(Part 9). 그 안에서 search_reference 도구가 RAG로 자료 검색(Part 7·8). 자유 판단이 필요한 자리.',
+  write:'<b>write_node = 체인</b> — "자료 → 보고서"는 정해진 변환 → 모델 호출 체인(Part 3·4)으로 충분. 검토 의견이 있으면 반영해 다시 씀(루프 시 재진입).',
+  review:'<b>review_node = 모델 판단</b> — 초안을 보고 통과/반려 판정. 결과가 조건 분기(Part 13)로 이어져 통과면 승인, 반려면 작성 루프.',
+  approval:'<b>approval_node = HITL</b> — 발행(비가역) 직전 사람 승인(Part 14). interrupt로 멈추고 Command(resume)로 재개. 가역 단계(조사·작성)엔 두지 않음.'
+};
+function renderW3(k){
+  document.querySelectorAll('#w3grid .fn-node').forEach(n=>n.classList.toggle('on',n.dataset.k===k));
+  document.getElementById('w3detail').innerHTML=w3[k];
+  drawPipeline('w2svg',k);
+}
+document.querySelectorAll('#w3grid .fn-node').forEach(n=>n.addEventListener('click',()=>renderW3(n.dataset.k)));
+renderW3('research');
+
+/* ===== W4: full run ===== */
+const w4seq=[
+  {node:'research',log:'[research] 🔬 에이전트+RAG로 자료 조사 → "도입률 2배↑, 30% 단축, 리스크 환각·보안"'},
+  {node:'write',log:'[write] ✍️ 작성 시도 1 → 초안 생성 (근거 미흡)'},
+  {node:'review',log:'[review] 🔎 검토 → 반려(근거 부족) → 작성 루프로'},
+  {node:'write',log:'[write] ✍️ 작성 시도 2 → 수치 인용해 보강'},
+  {node:'review',log:'[review] 🔎 검토 → 통과 ✅ → 승인 단계로'},
+  {node:'approval',log:'[approval] 🙋 interrupt — "발행할까요?" 멈춤. 사람 승인 대기...'},
+  {node:'approval',log:'[approval] ▶ Command(resume="승인") → 승인됨'},
+  {node:'publish',log:'[publish] 📤 발행 완료 ✅'},
+  {node:'end',log:'[끝] 🏁 전 공정 완료 — 18개 파트가 하나로 작동! 🎓'},
+];
+let w4i=0;
+function renderW4(){
+  const cur=w4i>0?w4seq[w4i-1].node:null;
+  drawPipeline('w4svg',cur);
+  document.getElementById('w4log').innerHTML=w4seq.slice(0,w4i).map(s=>s.log).join('<br>')||'▶ "한 단계씩"을 눌러 전 공정을 보세요';
+  const loopNote=(w4i>=3&&w4i<=4)?' · 🔁 반려 루프':(w4i===6?' · ⏸ HITL 멈춤':'');
+  document.getElementById('w4cnt').textContent=`단계 ${w4i}/${w4seq.length}`+loopNote;
+  document.getElementById('w4step').disabled=w4i>=w4seq.length;
+  document.getElementById('w4step').textContent=w4i>=w4seq.length?'🎓 졸업!':'▶ 한 단계씩';
+}
+document.getElementById('w4step').addEventListener('click',()=>{if(w4i<w4seq.length){w4i++;renderW4();}});
+document.getElementById('w4reset').addEventListener('click',()=>{w4i=0;renderW4();});
+renderW4();
+</script>
+</body>
+</html>

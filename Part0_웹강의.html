@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Part 0 · 왜 LangChain인가</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Gowun+Dodum&display=swap" rel="stylesheet">
+<style>
+  /* ===== Version 1 Design System ===== */
+  :root{
+    --bg:#f4efe6;          /* warm beige */
+    --card:#fbf8f2;        /* lighter beige card */
+    --ink:#2b2723;         /* near-black warm ink */
+    --sub:#6f6457;         /* muted brown */
+    --accent:#c2410c;      /* orange */
+    --accent-soft:#e9d5c4; /* soft orange tint */
+    --line:#e2d9c9;        /* hairline */
+    --teal:#2f6b5e;        /* secondary accent (LangGraph) */
+    --gold:#a8762f;        /* tertiary (에이전트) */
+    --serif:'Gowun Batang', serif;
+    --sans:'Gowun Dodum', sans-serif;
+    --maxw:760px;
+    color-scheme: light only;     /* dark mode prevention */
+  }
+  /* dark mode prevention */
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#f4efe6; --card:#fbf8f2; --ink:#2b2723; }
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--sans);
+    line-height:1.85;
+    font-size:17px;
+    -webkit-text-size-adjust:100%;
+    background-image:radial-gradient(circle at 20% 0%, rgba(194,65,12,.04), transparent 40%),
+                     radial-gradient(circle at 90% 100%, rgba(47,107,94,.04), transparent 45%);
+  }
+
+  /* ===== Progress bar ===== */
+  #progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:100;transition:width .1s linear;}
+
+  /* ===== Layout ===== */
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 22px;}
+  header.hero{
+    max-width:var(--maxw);margin:0 auto;padding:88px 22px 40px;
+  }
+  .eyebrow{font-family:var(--sans);color:var(--accent);font-size:13px;letter-spacing:.22em;font-weight:700;text-transform:uppercase;}
+  h1{font-family:var(--serif);font-weight:700;font-size:clamp(30px,6vw,46px);line-height:1.25;margin:14px 0 18px;letter-spacing:-.01em;}
+  .lead{font-size:18px;color:var(--sub);max-width:62ch;}
+  .hero-meta{margin-top:26px;display:flex;gap:10px;flex-wrap:wrap;}
+  .chip{font-size:12.5px;font-weight:700;letter-spacing:.04em;padding:6px 13px;border-radius:999px;background:var(--accent-soft);color:#8a3408;}
+  .chip.t{background:#d8e8e3;color:#225349;}
+
+  /* ===== Section ===== */
+  section{padding:54px 0 30px;border-top:1px solid var(--line);}
+  section:first-of-type{border-top:none;}
+  .sec-no{font-family:var(--serif);font-size:14px;color:var(--accent);font-weight:700;letter-spacing:.1em;}
+  h2{font-family:var(--serif);font-weight:700;font-size:clamp(23px,4.4vw,31px);margin:6px 0 20px;line-height:1.3;}
+  h3{font-family:var(--serif);font-weight:700;font-size:19px;margin:30px 0 10px;color:#3a342d;}
+  p{margin:0 0 16px;}
+  .sub{color:var(--sub);}
+  strong{color:var(--accent);font-weight:700;}
+  code{font-family:'Gowun Dodum',monospace;background:#efe7d8;color:#8a3408;padding:1.5px 7px;border-radius:6px;font-size:.92em;}
+
+  /* ===== 참고 box ===== */
+  .note{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);
+        border-radius:10px;padding:14px 18px;margin:18px 0;font-size:15.5px;color:var(--sub);}
+  .note b{color:var(--accent);}
+  .summary{background:#efe7d8;border-radius:12px;padding:18px 20px;margin:22px 0 4px;}
+  .summary .h{font-family:var(--serif);font-weight:700;color:var(--accent);font-size:15px;letter-spacing:.05em;margin-bottom:8px;}
+  .summary ol{margin:0;padding-left:20px;}
+  .summary li{margin:5px 0;font-size:15.5px;}
+
+  /* ===== Widget shell ===== */
+  .widget{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;margin:26px 0;
+          box-shadow:0 6px 22px rgba(80,60,30,.06);}
+  .widget .wlabel{display:inline-block;font-size:11.5px;font-weight:700;letter-spacing:.14em;color:#fff;
+          background:var(--accent);padding:4px 11px;border-radius:999px;margin-bottom:16px;}
+
+  /* W1: toggle compare */
+  .toggle-row{display:flex;gap:8px;margin-bottom:16px;}
+  .tbtn{flex:1;border:1.5px solid var(--line);background:#fff;border-radius:10px;padding:11px;cursor:pointer;
+        font-family:var(--sans);font-size:14.5px;font-weight:700;color:var(--sub);transition:.18s;}
+  .tbtn.on{border-color:var(--accent);background:var(--accent);color:#fff;}
+  .steps{list-style:none;}
+  .steps li{padding:9px 12px;border-radius:9px;margin:6px 0;font-size:14.5px;display:flex;gap:10px;align-items:flex-start;
+            background:#fff;border:1px solid var(--line);}
+  .steps li .ic{flex:none;width:20px;height:20px;border-radius:6px;display:grid;place-items:center;font-size:12px;font-weight:700;color:#fff;}
+  .steps li.bad .ic{background:#b4451f;}
+  .steps li.good .ic{background:var(--teal);}
+  .verdict{margin-top:12px;font-size:14px;font-weight:700;text-align:center;padding:10px;border-radius:9px;}
+  .verdict.bad{background:#f3ddd2;color:#9a3a14;}
+  .verdict.good{background:#d8e8e3;color:#225349;}
+
+  /* W2: car parts */
+  .car{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+  .part{border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:16px 12px;text-align:center;cursor:pointer;transition:.18s;}
+  .part:hover{transform:translateY(-2px);}
+  .part.on{border-color:var(--accent);box-shadow:0 4px 14px rgba(194,65,12,.14);}
+  .part .emo{font-size:26px;}
+  .part .nm{font-family:var(--serif);font-weight:700;margin-top:6px;font-size:15px;}
+  .part .tag{font-size:11.5px;color:var(--sub);margin-top:2px;}
+  .car-desc{margin-top:16px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:15px 16px;min-height:62px;font-size:15px;}
+  .car-desc b{color:var(--accent);}
+
+  /* W3: three layers */
+  .layer-tabs{display:flex;gap:8px;margin-bottom:18px;}
+  .ltab{flex:1;border:1.5px solid var(--line);background:#fff;border-radius:10px;padding:12px 6px;cursor:pointer;text-align:center;transition:.18s;}
+  .ltab .lt{font-family:var(--serif);font-weight:700;font-size:15px;}
+  .ltab .ls{font-size:11px;color:var(--sub);margin-top:2px;}
+  .ltab.on{color:#fff;}
+  .ltab.on .ls{color:rgba(255,255,255,.85);}
+  .ltab[data-k="lcel"].on{background:var(--accent);border-color:var(--accent);}
+  .ltab[data-k="agent"].on{background:var(--gold);border-color:var(--gold);}
+  .ltab[data-k="graph"].on{background:var(--teal);border-color:var(--teal);}
+  .stage{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px;}
+  .road{height:120px;position:relative;border-radius:10px;overflow:hidden;margin-bottom:14px;background:#f6f1e8;}
+  .road svg{width:100%;height:100%;display:block;}
+  .layer-text{font-size:15px;}
+  .layer-text .ttl{font-family:var(--serif);font-weight:700;font-size:17px;margin-bottom:4px;}
+  .layer-text .meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+  .layer-text .meta span{font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px;background:#efe7d8;color:#7a5a2a;}
+
+  /* W4: roadmap */
+  .rm{display:flex;flex-direction:column;gap:8px;}
+  .rmlevel{border:1.5px solid var(--line);background:#fff;border-radius:12px;overflow:hidden;}
+  .rmhead{padding:14px 16px;cursor:pointer;display:flex;align-items:center;gap:12px;}
+  .rmdot{width:12px;height:12px;border-radius:50%;flex:none;}
+  .rmhead .rl{font-family:var(--serif);font-weight:700;font-size:16px;}
+  .rmhead .rs{font-size:12.5px;color:var(--sub);margin-left:auto;margin-right:8px;}
+  .rmhead .arr{transition:.25s;color:var(--sub);}
+  .rmlevel.open .arr{transform:rotate(90deg);}
+  .rmbody{max-height:0;overflow:hidden;transition:max-height .3s ease;background:#fdfaf4;}
+  .rmlevel.open .rmbody{max-height:340px;}
+  .rmbody ul{list-style:none;padding:6px 18px 16px 40px;}
+  .rmbody li{font-size:14px;padding:5px 0;color:#4a4339;border-bottom:1px dashed var(--line);}
+  .rmbody li:last-child{border-bottom:none;}
+
+  /* W5: quiz */
+  .qcard{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px;}
+  .qq{font-family:var(--serif);font-weight:700;font-size:16px;margin-bottom:14px;}
+  .qopts{display:flex;flex-direction:column;gap:8px;}
+  .qopt{border:1.5px solid var(--line);background:#fdfaf4;border-radius:10px;padding:12px 14px;cursor:pointer;font-size:14.5px;transition:.15s;text-align:left;}
+  .qopt:hover{border-color:var(--accent-soft);}
+  .qopt.correct{border-color:var(--teal);background:#d8e8e3;color:#225349;font-weight:700;}
+  .qopt.wrong{border-color:#c98a6e;background:#f3ddd2;color:#9a3a14;}
+  .qfb{margin-top:12px;font-size:14px;min-height:20px;color:var(--sub);}
+  .qnav{margin-top:14px;text-align:right;}
+  .qnext{border:none;background:var(--accent);color:#fff;font-family:var(--sans);font-weight:700;font-size:14px;padding:9px 18px;border-radius:9px;cursor:pointer;}
+  .qnext[disabled]{opacity:.4;cursor:not-allowed;}
+
+  footer{max-width:var(--maxw);margin:0 auto;padding:30px 22px 80px;color:var(--sub);font-size:14px;border-top:1px solid var(--line);}
+  .next-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin:20px 0 0;}
+  .next-card .nl{font-size:12px;letter-spacing:.14em;color:var(--accent);font-weight:700;}
+  .next-card .nt{font-family:var(--serif);font-weight:700;font-size:18px;margin-top:4px;}
+
+  /* reveal on scroll */
+  .reveal{opacity:0;transform:translateY(18px);transition:opacity .6s ease,transform .6s ease;}
+  .reveal.in{opacity:1;transform:none;}
+  @media(max-width:480px){
+    body{font-size:16px;}
+    .car{grid-template-columns:1fr;}
+    .layer-tabs{flex-direction:column;}
+  }
+</style>
+</head>
+<body>
+<div id="progress"></div>
+
+<header class="hero">
+  <div class="eyebrow">LangChain 에이전트 마스터 · Part 0</div>
+  <h1>왜 LangChain인가<br>1.0 구조 한눈에 보기</h1>
+  <p class="lead">코드를 한 줄도 쓰기 전에, 우리가 앞으로 무엇을·왜·어떤 순서로 만들 것인가의 지도를 머릿속에 그리는 단계임. 이 지도가 있어야 초급의 LCEL, 중급의 에이전트, 고급의 LangGraph가 하나의 길로 이어짐.</p>
+  <div class="hero-meta">
+    <span class="chip">🟢 초급 입문</span>
+    <span class="chip t">LangChain 1.0 기준</span>
+    <span class="chip t">예상 20분</span>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ===== Section 1 ===== -->
+  <section class="reveal">
+    <div class="sec-no">0-1</div>
+    <h2>LLM을 직접 부르면 생기는 문제</h2>
+    <p>LLM(대규모 언어 모델)은 그 자체로는 <strong>"질문을 넣으면 글자를 뱉는 함수"</strong> 하나에 불과함. 직접 호출하면 프롬프트 조립, 응답 파싱, 모델 교체, 대화 기억, 행동 제어를 전부 손으로 해야 함.</p>
+    <p class="sub">LLM 직접 호출은 전기 부품을 낱개로 사서 직접 납땜하는 것과 같음. 작동은 하지만 부품 하나를 바꾸려면 회로 전체를 다시 손봐야 함. LangChain은 그 부품들을 <strong>표준 규격의 블록</strong>으로 만들어, 모델만 쏙 빼서 갈아 끼워도 나머지가 그대로 돌아가게 함.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 모델을 바꿔보기</span>
+      <p style="font-size:14.5px;margin-bottom:14px;" class="sub">"OpenAI로 만든 코드를 Gemini로 바꾼다"고 가정함. 방식을 눌러 무엇이 무너지는지 비교해봄.</p>
+      <div class="toggle-row">
+        <button class="tbtn on" data-mode="raw">직접 호출 방식</button>
+        <button class="tbtn" data-mode="lc">LangChain 방식</button>
+      </div>
+      <ul class="steps" id="w1steps"></ul>
+      <div class="verdict" id="w1verdict"></div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;LangChain의 모든 부품은 <code>Runnable</code>이라는 공통 규격을 따름. "입력을 받아 출력을 내는 모든 것은 <code>invoke()</code>라는 똑같은 메서드를 가진다"는 약속임. 이 약속 덕분에 부품을 파이프(<code>|</code>)로 이을 수 있고, 그 문법이 곧 LCEL임.</div>
+
+    <div class="summary">
+      <div class="h">3줄 요약</div>
+      <ol>
+        <li>LLM은 그 자체로는 "글자를 뱉는 함수" 하나일 뿐임.</li>
+        <li>직접 호출하면 프롬프트·파싱·모델 교체·기억·행동을 전부 손으로 함.</li>
+        <li>LangChain은 이를 표준 블록으로 묶어 갈아 끼우고 이어 붙이게 함.</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ===== Section 2 ===== -->
+  <section class="reveal">
+    <div class="sec-no">0-2</div>
+    <h2>LangChain 1.0 — 무엇이 달라졌는가</h2>
+    <p>LangChain은 2025년 10월 <strong>1.0 버전</strong>으로 올라서며 구조가 정리됨. 이 강의는 1.0 기준임. 핵심은 한 문장으로 요약됨.</p>
+    <p style="font-family:var(--serif);font-size:18px;text-align:center;background:#efe7d8;border-radius:10px;padding:16px;">"LangChain은 에이전트를 빠르게 조립하는 <strong>층</strong>,<br>LangGraph는 그 에이전트를 안정적으로 돌리는 <strong>엔진</strong>이다."</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 자동차로 보는 1.0 구조</span>
+      <p style="font-size:14.5px;margin-bottom:14px;" class="sub">부품을 눌러 각 층의 역할을 확인해봄.</p>
+      <div class="car" id="w2car">
+        <div class="part on" data-k="lc"><div class="emo">🎛️</div><div class="nm">운전석·핸들</div><div class="tag">LangChain</div></div>
+        <div class="part" data-k="lg"><div class="emo">⚙️</div><div class="nm">엔진·변속기</div><div class="tag">LangGraph</div></div>
+        <div class="part" data-k="ls"><div class="emo">📟</div><div class="nm">계기판</div><div class="tag">LangSmith</div></div>
+      </div>
+      <div class="car-desc" id="w2desc"></div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;1.0의 가장 중요한 변화: <b>모든 LangChain 에이전트는 이제 LangGraph 런타임 위에서 실행됨.</b> 중급의 <code>create_agent()</code>는 겉보기엔 LangChain 함수지만, 내부에서 LangGraph가 상태를 들고 도구 호출 루프를 돌림. 옛 자료의 <code>AgentExecutor</code> 방식은 1.0 이전 구형 패턴임.</div>
+
+    <div class="summary">
+      <div class="h">3줄 요약</div>
+      <ol>
+        <li>이 강의는 2025년 10월 출시된 LangChain 1.0 기준임.</li>
+        <li>핵심은 "모든 에이전트가 LangGraph 런타임 위에서 돈다"임.</li>
+        <li>따라서 초·중·고급은 같은 엔진을 점점 깊이 보는 하나의 길임.</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ===== Section 3 ===== -->
+  <section class="reveal">
+    <div class="sec-no">0-3</div>
+    <h2>세 개의 층 — LCEL · 에이전트 · LangGraph</h2>
+    <p>앞으로 배울 모든 것은 세 층 위에 있음. 이 강의의 초급/중급/고급이 정확히 이 세 층과 일대일로 대응함. 차이는 결국 <strong>"길 안내 방식"</strong>의 차이임.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 길 안내로 보는 세 층</span>
+      <div class="layer-tabs" id="w3tabs">
+        <div class="ltab on" data-k="lcel"><div class="lt">LCEL</div><div class="ls">🟢 초급</div></div>
+        <div class="ltab" data-k="agent"><div class="lt">에이전트</div><div class="ls">🟡 중급</div></div>
+        <div class="ltab" data-k="graph"><div class="lt">LangGraph</div><div class="ls">🔴 고급</div></div>
+      </div>
+      <div class="stage">
+        <div class="road" id="w3road"></div>
+        <div class="layer-text" id="w3text"></div>
+      </div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;실무 규칙: <b>LCEL로 시작하라.</b> 그러다 "반복", "조건 분기", "여러 단계 상태 유지"라는 벽에 부딪히면 그때 LangGraph로 넘어가면 됨. 처음부터 LangGraph를 쓰는 것은 동네 마트 갈 때 트럭을 모는 것과 같음.</div>
+
+    <div class="summary">
+      <div class="h">3줄 요약</div>
+      <ol>
+        <li>LCEL(정해진 길) → 에이전트(판단) → LangGraph(직접 설계)가 곧 초·중·고급임.</li>
+        <li>경계는 "정해진 흐름이면 충분한가, 동적 판단이 필요한가"임.</li>
+        <li>항상 LCEL로 시작해 벽에 부딪히면 LangGraph로 올라가는 것이 정석임.</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ===== Section 4 ===== -->
+  <section class="reveal">
+    <div class="sec-no">0-4</div>
+    <h2>이 강의를 다 들으면 만들 수 있는 것</h2>
+    <p>종착점은 <strong>"스스로 판단하고, 필요하면 사람의 승인을 받으며, 여러 전문가가 협업하고, 무슨 일을 했는지 기록으로 남기는 에이전트"</strong>임. 아래 로드맵의 단계를 눌러 전체 여정을 펼쳐봄.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 전체 여정 로드맵</span>
+      <div class="rm" id="w4rm"></div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;각 파트는 <b>이론 문서</b>(개념·문법·동작 원리)와 <b>실습 노트북</b>(직접 돌려보는 Gemini 코드) 두 벌로 구성됨. 한 파트라도 건너뛰면 다음 파트의 비유와 코드가 허공에 뜸.</div>
+
+    <div class="summary">
+      <div class="h">3줄 요약</div>
+      <ol>
+        <li>종착점은 판단·승인·협업·기록을 갖춘 완성형 에이전트임.</li>
+        <li>길은 초급(재료) → 중급(판단) → 고급(제어)으로 누적됨.</li>
+        <li>각 파트는 이론 문서 + Gemini 실습 노트북 두 벌로 진행됨.</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ===== Section 5 ===== -->
+  <section class="reveal">
+    <div class="sec-no">0-5</div>
+    <h2>스스로 점검 — 어느 층을 써야 할까</h2>
+    <p>Part 0의 핵심은 "정해진 길이면 충분한가, 동적 판단이 필요한가"의 감각임. 아래 상황에서 어떤 층이 맞을지 골라봄.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 판단 퀴즈</span>
+      <div class="qcard">
+        <div class="qq" id="qq"></div>
+        <div class="qopts" id="qopts"></div>
+        <div class="qfb" id="qfb"></div>
+        <div class="qnav"><button class="qnext" id="qnext" disabled>다음 문제 →</button></div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="next-card">
+    <div class="nl">NEXT · PART 1</div>
+    <div class="nt">개발 환경과 첫 LLM 호출</div>
+    <p style="margin-top:8px;">이 지도 위에 첫 발을 디딤. 환경을 만들고, Gemini API 키를 발급받고, LangChain으로 모델에 첫 질문을 던져 응답을 받아봄. 함께 제공되는 Part 0 실습 노트북에서 "Hello, LangChain" 첫 호출로 파이프라인이 살아 있는지 점검함.</p>
+  </div>
+  <p style="margin-top:24px;">LangChain 에이전트 마스터 커리큘럼 · Part 0 / 18 · LangChain 1.0 기준</p>
+</footer>
+
+<script>
+/* ===== progress bar + reveal ===== */
+const prog=document.getElementById('progress');
+window.addEventListener('scroll',()=>{
+  const h=document.documentElement;
+  const sc=(h.scrollTop)/(h.scrollHeight-h.clientHeight);
+  prog.style.width=(sc*100)+'%';
+});
+const io=new IntersectionObserver((es)=>{es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('in');});},{threshold:.12});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+
+/* ===== W1: 모델 교체 비교 ===== */
+const w1data={
+  raw:{steps:[
+    ['bad','프롬프트 문자열을 직접 이어 붙인 코드를 다시 손봄'],
+    ['bad','응답에서 필요한 부분 잘라내는 파싱 코드를 새 SDK에 맞게 고침'],
+    ['bad','OpenAI SDK 호출부를 Gemini SDK로 통째로 교체함'],
+    ['bad','대화 기록 관리 코드도 새 형식에 맞춰 다시 씀']
+  ],verdict:['bad','😵 호출 코드 전체를 다시 써야 함']},
+  lc:{steps:[
+    ['good','모델 블록 한 줄만 ChatGoogleGenerativeAI 로 교체함'],
+    ['good','프롬프트·파서·체인은 Runnable 규격이라 그대로 둠'],
+    ['good','.invoke() 호출 방식이 동일해 나머지 코드 무변경'],
+    ['good','대화 기억·도구도 표준 블록이라 영향 없음']
+  ],verdict:['good','😎 한 줄 교체로 끝남']}
+};
+function renderW1(mode){
+  const d=w1data[mode];
+  document.getElementById('w1steps').innerHTML=d.steps.map(([k,t],i)=>
+    `<li class="${k}"><span class="ic">${k==='good'?'✓':i+1}</span><span>${t}</span></li>`).join('');
+  const v=document.getElementById('w1verdict');
+  v.className='verdict '+d.verdict[0];v.textContent=d.verdict[1];
+}
+document.querySelectorAll('#w1steps,.toggle-row .tbtn');
+document.querySelectorAll('.toggle-row .tbtn').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.toggle-row .tbtn').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');renderW1(b.dataset.mode);
+}));
+renderW1('raw');
+
+/* ===== W2: 자동차 부품 ===== */
+const w2={
+  lc:'<b>LangChain (운전석·핸들)</b> — 사람이 다루기 쉬운 조작부임. LCEL과 create_agent로 에이전트를 빠르게 조립함. 운전자는 핸들만 잡으면 됨.',
+  lg:'<b>LangGraph (엔진·변속기)</b> — 실제로 힘을 내고 제어하는 내부 동력임. 1.0부터 모든 에이전트가 이 엔진 위에서 돌며, 상태 유지와 중단·재개를 담당함.',
+  ls:'<b>LangSmith (계기판·블랙박스)</b> — 무슨 일이 벌어지는지 보여주는 관측 장치임. 트레이싱과 평가로 에이전트가 왜 그 행동을 했는지 들여다봄. (고급 Part 16)'
+};
+document.querySelectorAll('#w2car .part').forEach(p=>p.addEventListener('click',()=>{
+  document.querySelectorAll('#w2car .part').forEach(x=>x.classList.remove('on'));
+  p.classList.add('on');document.getElementById('w2desc').innerHTML=w2[p.dataset.k];
+}));
+document.getElementById('w2desc').innerHTML=w2.lc;
+
+/* ===== W3: 세 개의 층 ===== */
+const w3={
+  lcel:{ttl:'직진 도로',body:'출발지에서 도착지까지 길이 하나로 정해져 있음. 갈림길이 없으니 빠르고 예측 가능함. 입력이 들어오면 항상 똑같은 순서로 처리됨.',meta:['정해진 흐름','빠름','예측 가능'],color:'var(--accent)',road:roadLine},
+  agent:{ttl:'내비게이션을 든 운전자',body:'목적지만 정해주면 상황을 보고 어디서 꺾을지 스스로 정함. 도구가 길이고, 모델이 운전자임. 검색할지·계산할지·바로 답할지를 매번 골라줌.',meta:['동적 판단','도구 선택','create_agent'],color:'var(--gold)',road:roadBranch},
+  graph:{ttl:'교통망을 직접 설계하는 사람',body:'어디에 신호등(조건 분기)을 두고, 어디서 유턴(반복)을 허용하고, 어디서 사람이 개입할지를 손으로 그림. 여러 에이전트의 협업까지 설계함.',meta:['반복·분기','사람 개입','멀티에이전트'],color:'var(--teal)',road:roadGraph}
+};
+function roadLine(c){return `<svg viewBox="0 0 300 120"><line x1="20" y1="60" x2="280" y2="60" stroke="${c}" stroke-width="5" stroke-dasharray="14 8"/><circle cx="20" cy="60" r="8" fill="${c}"/><polygon points="280,52 296,60 280,68" fill="${c}"/></svg>`;}
+function roadBranch(c){return `<svg viewBox="0 0 300 120"><line x1="20" y1="60" x2="130" y2="60" stroke="${c}" stroke-width="5"/><circle cx="20" cy="60" r="8" fill="${c}"/><circle cx="130" cy="60" r="11" fill="#fff" stroke="${c}" stroke-width="3"/><text x="130" y="64" text-anchor="middle" font-size="11" fill="${c}" font-weight="bold">?</text><line x1="141" y1="55" x2="280" y2="28" stroke="${c}" stroke-width="4"/><line x1="141" y1="65" x2="280" y2="60" stroke="${c}" stroke-width="4"/><line x1="138" y1="70" x2="250" y2="98" stroke="${c}" stroke-width="4"/></svg>`;}
+function roadGraph(c){return `<svg viewBox="0 0 300 120"><g stroke="${c}" stroke-width="3" fill="none"><path d="M40 60 L110 30"/><path d="M40 60 L110 90"/><path d="M110 30 L190 30"/><path d="M110 90 L190 90"/><path d="M190 30 L190 90"/><path d="M190 30 L260 60"/><path d="M190 90 L260 60"/><path d="M260 60 C 280 40 220 20 200 32" stroke-dasharray="5 4"/></g><g fill="${c}"><circle cx="40" cy="60" r="8"/><circle cx="110" cy="30" r="8"/><circle cx="110" cy="90" r="8"/><circle cx="190" cy="30" r="8"/><circle cx="190" cy="90" r="8"/><circle cx="260" cy="60" r="9"/></g></svg>`;}
+function renderW3(k){
+  const d=w3[k];
+  document.getElementById('w3road').innerHTML=d.road(d.color);
+  document.getElementById('w3text').innerHTML=
+    `<div class="ttl" style="color:${d.color}">${d.ttl}</div><div>${d.body}</div>
+     <div class="meta">${d.meta.map(m=>`<span>${m}</span>`).join('')}</div>`;
+}
+document.querySelectorAll('#w3tabs .ltab').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('#w3tabs .ltab').forEach(x=>x.classList.remove('on'));
+  t.classList.add('on');renderW3(t.dataset.k);
+}));
+renderW3('lcel');
+
+/* ===== W4: 로드맵 ===== */
+const w4=[
+  {lvl:'🟢 초급 — 재료 익히기',sub:'Part 1~5',color:'var(--accent)',items:['환경과 첫 LLM 호출','프롬프트 템플릿','LCEL 파이프(|)의 원리','출력 파서','첫 체인 만들기']},
+  {lvl:'🟡 중급 — 판단하는 에이전트',sub:'Part 6~11',color:'var(--gold)',items:['체인 vs 에이전트','도구(Tool) 정의','RAG 기초','create_agent 로 에이전트 만들기','메모리와 상태','중급 프로젝트']},
+  {lvl:'🔴 고급 — 제어하는 에이전트',sub:'Part 12~18',color:'var(--teal)',items:['왜 LangGraph인가','StateGraph 직접 짜기','Human-in-the-loop','멀티에이전트 오케스트레이션','관측·평가(LangSmith)','배포와 신뢰성','최종 프로젝트']}
+];
+document.getElementById('w4rm').innerHTML=w4.map((g,i)=>`
+  <div class="rmlevel ${i===0?'open':''}">
+    <div class="rmhead"><span class="rmdot" style="background:${g.color}"></span>
+      <span class="rl">${g.lvl}</span><span class="rs">${g.sub}</span><span class="arr">▶</span></div>
+    <div class="rmbody"><ul>${g.items.map(it=>`<li>${it}</li>`).join('')}</ul></div>
+  </div>`).join('');
+document.querySelectorAll('#w4rm .rmhead').forEach(h=>h.addEventListener('click',()=>{
+  h.parentElement.classList.toggle('open');
+}));
+
+/* ===== W5: 퀴즈 ===== */
+const quiz=[
+  {q:'입력된 고객 문의를 "항상 똑같은 순서로" 요약→번역→정리만 하면 되는 작업이다.',
+   opts:[['LCEL (정해진 길)',true],['에이전트 (동적 판단)',false],['LangGraph (직접 설계)',false]],
+   fb:'정답은 LCEL임. 흐름이 고정되어 있으면 굳이 판단이 필요 없으므로 체인이 가장 간단하고 빠름.'},
+  {q:'질문에 따라 "웹 검색을 할지, 계산기를 쓸지, 바로 답할지"를 매번 스스로 골라야 한다.',
+   opts:[['LCEL (정해진 길)',false],['에이전트 (동적 판단)',true],['LangGraph (직접 설계)',false]],
+   fb:'정답은 에이전트임. 도구를 보고 다음 행동을 스스로 고르는 동적 판단이 필요하므로 create_agent가 맞음.'},
+  {q:'여러 단계를 반복하다가 "위험한 작업 직전에는 사람의 승인"을 받아야 하고, 전문 에이전트 셋이 협업한다.',
+   opts:[['LCEL (정해진 길)',false],['에이전트 (동적 판단)',false],['LangGraph (직접 설계)',true]],
+   fb:'정답은 LangGraph임. 반복·사람 개입(HITL)·멀티에이전트는 그래프로 직접 설계해야 제어할 수 있음.'}
+];
+let qi=0,answered=false;
+function renderQ(){
+  answered=false;
+  const item=quiz[qi];
+  document.getElementById('qq').textContent=`Q${qi+1}. ${item.q}`;
+  document.getElementById('qfb').textContent='';
+  document.getElementById('qnext').disabled=true;
+  document.getElementById('qnext').textContent = qi<quiz.length-1?'다음 문제 →':'처음부터 다시 ↺';
+  document.getElementById('qopts').innerHTML=item.opts.map((o,idx)=>
+    `<button class="qopt" data-i="${idx}">${o[0]}</button>`).join('');
+  document.querySelectorAll('#qopts .qopt').forEach(b=>b.addEventListener('click',()=>{
+    if(answered)return;answered=true;
+    const idx=+b.dataset.i;const correct=item.opts[idx][1];
+    document.querySelectorAll('#qopts .qopt').forEach((x,j)=>{
+      if(item.opts[j][1])x.classList.add('correct');
+    });
+    if(!correct)b.classList.add('wrong');
+    document.getElementById('qfb').textContent=(correct?'✅ 정답! ':'💡 ')+item.fb;
+    document.getElementById('qnext').disabled=false;
+  }));
+}
+document.getElementById('qnext').addEventListener('click',()=>{
+  qi=(qi+1)%quiz.length;renderQ();
+});
+renderQ();
+</script>
+</body>
+</html>

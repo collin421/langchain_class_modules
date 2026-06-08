@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Part 12 · 왜 LangGraph인가</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Gowun+Dodum&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f4efe6;--card:#fbf8f2;--ink:#2b2723;--sub:#6f6457;--accent:#c2410c;
+    --accent-soft:#e9d5c4;--line:#e2d9c9;--teal:#2f6b5e;--gold:#a8762f;
+    --serif:'Gowun Batang',serif;--sans:'Gowun Dodum',sans-serif;--maxw:760px;color-scheme:light only;
+  }
+  @media (prefers-color-scheme:dark){:root{--bg:#f4efe6;--card:#fbf8f2;--ink:#2b2723;}}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.85;font-size:17px;-webkit-text-size-adjust:100%;
+    background-image:radial-gradient(circle at 20% 0%,rgba(194,65,12,.04),transparent 40%),radial-gradient(circle at 90% 100%,rgba(47,107,94,.04),transparent 45%);}
+  #progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:100;transition:width .1s linear;}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 22px;}
+  header.hero{max-width:var(--maxw);margin:0 auto;padding:88px 22px 40px;}
+  .eyebrow{color:var(--accent);font-size:13px;letter-spacing:.22em;font-weight:700;text-transform:uppercase;}
+  h1{font-family:var(--serif);font-weight:700;font-size:clamp(30px,6vw,46px);line-height:1.25;margin:14px 0 18px;letter-spacing:-.01em;}
+  .lead{font-size:18px;color:var(--sub);max-width:62ch;}
+  .hero-meta{margin-top:26px;display:flex;gap:10px;flex-wrap:wrap;}
+  .chip{font-size:12.5px;font-weight:700;letter-spacing:.04em;padding:6px 13px;border-radius:999px;background:var(--accent-soft);color:#8a3408;}
+  .chip.t{background:#d8e8e3;color:#225349;}
+  section{padding:54px 0 30px;border-top:1px solid var(--line);}
+  section:first-of-type{border-top:none;}
+  .sec-no{font-family:var(--serif);font-size:14px;color:var(--accent);font-weight:700;letter-spacing:.1em;}
+  h2{font-family:var(--serif);font-weight:700;font-size:clamp(23px,4.4vw,31px);margin:6px 0 20px;line-height:1.3;}
+  p{margin:0 0 16px;}
+  .sub{color:var(--sub);}
+  strong{color:var(--accent);font-weight:700;}
+  code{font-family:'Gowun Dodum',monospace;background:#efe7d8;color:#8a3408;padding:1.5px 7px;border-radius:6px;font-size:.92em;}
+  pre{background:#2b2723;color:#f4efe6;border-radius:12px;padding:16px 18px;overflow-x:auto;font-size:14px;line-height:1.7;margin:16px 0;}
+  pre code{background:none;color:inherit;padding:0;}
+  pre .k{color:#e0935f;}pre .s{color:#9ec79a;}pre .c{color:#8b8175;font-style:italic;}
+  .note{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px;padding:14px 18px;margin:18px 0;font-size:15.5px;color:var(--sub);}
+  .note b{color:var(--accent);}
+  .summary{background:#efe7d8;border-radius:12px;padding:18px 20px;margin:22px 0 4px;}
+  .summary .h{font-family:var(--serif);font-weight:700;color:var(--accent);font-size:15px;letter-spacing:.05em;margin-bottom:8px;}
+  .summary ol{margin:0;padding-left:20px;}.summary li{margin:5px 0;font-size:15.5px;}
+  .widget{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;margin:26px 0;box-shadow:0 6px 22px rgba(80,60,30,.06);}
+  .widget .wlabel{display:inline-block;font-size:11.5px;font-weight:700;letter-spacing:.14em;color:#fff;background:var(--accent);padding:4px 11px;border-radius:999px;margin-bottom:16px;}
+  .wdesc{font-size:14.5px;margin-bottom:14px;color:var(--sub);}
+  .btn{border:none;background:var(--accent);color:#fff;font-family:var(--sans);font-weight:700;font-size:13.5px;padding:9px 18px;border-radius:9px;cursor:pointer;}
+  .btn.ghost{background:#fdfaf4;border:1px solid var(--line);color:var(--sub);}
+
+  /* W1: ceiling */
+  .cl-stage{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;}
+  .cl-loop{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+  .cl-node{border:1.5px solid var(--line);border-radius:9px;padding:9px 13px;font-size:12.5px;background:#fdfaf4;}
+  .cl-node.agent{border-color:var(--accent);background:var(--accent-soft);}
+  .cl-arrow{color:var(--gold);font-weight:700;}
+  .cl-list{display:flex;flex-direction:column;gap:7px;}
+  .cl-item{display:flex;gap:9px;align-items:flex-start;font-size:13px;padding:8px 10px;border-radius:8px;background:#fbeae3;border:1px solid #e6c3b3;}
+  .cl-item .x{color:#b4451f;font-weight:700;flex:none;}
+
+  /* W2: already on graph */
+  .ag-toggle{display:flex;gap:8px;margin-bottom:14px;}
+  .agbtn{flex:1;border:1.5px solid var(--line);background:#fff;border-radius:9px;padding:10px;cursor:pointer;font-family:var(--sans);font-weight:700;font-size:12.5px;color:var(--sub);transition:.15s;}
+  .agbtn.on{border-color:var(--accent);background:var(--accent);color:#fff;}
+  .ag-graph{background:#2b2723;border-radius:12px;padding:20px;text-align:center;}
+  .ag-svg{width:100%;max-width:420px;height:160px;}
+  .ag-cap{font-size:12.5px;color:var(--sub);margin-top:10px;text-align:center;}
+
+  /* W3: four signals */
+  .fs-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .fs-card{border:1.5px solid var(--line);border-radius:11px;padding:13px;background:#fff;cursor:pointer;transition:.2s;}
+  .fs-card.on{border-color:var(--teal);background:#eef5f3;}
+  .fs-card .si{font-size:22px;}
+  .fs-card .sn{font-family:var(--serif);font-weight:700;font-size:14px;margin:5px 0;}
+  .fs-card .sd{font-size:11.5px;color:var(--sub);}
+  .fs-meter{margin-top:14px;background:#efe7d8;border-radius:10px;padding:12px 14px;text-align:center;font-size:13.5px;font-weight:700;}
+
+  /* W4: agent vs graph mix */
+  .mx-stage{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;}
+  .mx-graph{display:flex;flex-direction:column;gap:8px;}
+  .mx-node{border:1.5px solid var(--line);border-radius:10px;padding:11px 13px;font-size:12.5px;display:flex;align-items:center;gap:10px;background:#fdfaf4;}
+  .mx-node.graph{border-color:var(--teal);}
+  .mx-node.agent{border-color:var(--accent);background:var(--accent-soft);}
+  .mx-node.chain{border-color:var(--gold);background:#fbf3e6;}
+  .mx-node .badge{flex:none;font-size:10px;font-weight:700;padding:3px 8px;border-radius:999px;}
+  .mx-node.graph .badge{background:#d8e8e3;color:#225349;}
+  .mx-node.agent .badge{background:var(--accent);color:#fff;}
+  .mx-node.chain .badge{background:var(--gold);color:#fff;}
+  .mx-arrow{text-align:center;color:var(--gold);font-size:13px;}
+
+  /* W5: ladder */
+  .ld-steps{display:flex;flex-direction:column;gap:0;}
+  .ld-step{display:flex;align-items:center;gap:12px;background:#fff;border:1.5px solid var(--line);border-radius:11px;padding:13px 15px;cursor:pointer;transition:.2s;}
+  .ld-step.on{border-color:var(--accent);background:#fdfaf4;box-shadow:0 3px 10px rgba(194,65,12,.08);}
+  .ld-step .lw{flex:none;font-size:11px;font-weight:700;color:var(--sub);width:48px;}
+  .ld-step .ln{font-family:var(--serif);font-weight:700;font-size:15px;}
+  .ld-step .ld{font-size:12px;color:var(--sub);}
+  .ld-conn{text-align:center;color:var(--gold);font-size:14px;line-height:1.4;}
+  .ld-detail{margin-top:12px;background:#efe7d8;border-radius:10px;padding:13px 15px;font-size:13.5px;}
+
+  footer{max-width:var(--maxw);margin:0 auto;padding:30px 22px 80px;color:var(--sub);font-size:14px;border-top:1px solid var(--line);}
+  .next-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin:20px 0 0;}
+  .next-card .nl{font-size:12px;letter-spacing:.14em;color:var(--accent);font-weight:700;}
+  .next-card .nt{font-family:var(--serif);font-weight:700;font-size:18px;margin-top:4px;}
+  .reveal{opacity:0;transform:translateY(18px);transition:opacity .6s ease,transform .6s ease;}
+  .reveal.in{opacity:1;transform:none;}
+  @media(max-width:480px){body{font-size:16px;}.fs-grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div id="progress"></div>
+
+<header class="hero">
+  <div class="eyebrow">LangChain 에이전트 마스터 · Part 12 · 고급 시작</div>
+  <h1>왜 LangGraph인가</h1>
+  <p class="lead">Part 11에서 "흐름을 모델의 자유 판단에 맡기는" 에이전트의 한계를 마주했음. 이제 흐름의 <strong>운전대를 직접 쥠</strong>. LangGraph는 노드·엣지로 흐름을 그리는 도구 — 사실 우리 에이전트도 이미 그 위에서 돌고 있었음.</p>
+  <div class="hero-meta">
+    <span class="chip">🔴 고급 · 12/18</span>
+    <span class="chip t">개념 전환</span>
+    <span class="chip t">예상 35분</span>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- Section 1: ceiling -->
+  <section class="reveal">
+    <div class="sec-no">12-1</div>
+    <h2>create_agent의 천장</h2>
+    <p><code>create_agent</code>는 강력하지만 흐름이 <strong>고정된 한 패턴</strong>임 — "모델이 도구 고르고, 결과 보고, 다시 고르고… 답이 되면 멈춤." 이 패턴 자체는 못 바꿈. 자동 모드만 있는 드론처럼, 정밀한 비행 계획은 강제하기 어려움.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 고정된 루프와 그 한계</span>
+      <p class="wdesc">create_agent의 내부 루프는 늘 이 모양임. 이 패턴으로는 강제하기 어려운 것들을 봄.</p>
+      <div class="cl-stage">
+        <div class="cl-loop">
+          <span class="cl-node agent">🤖 모델 (판단)</span>
+          <span class="cl-arrow">→</span>
+          <span class="cl-node">🔧 도구 실행</span>
+          <span class="cl-arrow">↩ 반복</span>
+        </div>
+        <div class="cl-list">
+          <div class="cl-item"><span class="x">✗</span><span>"이 단계 다음엔 <b>반드시</b> 저 단계" — 고정 순서 강제</span></div>
+          <div class="cl-item"><span class="x">✗</span><span>"조건 A면 이쪽, B면 저쪽" — 명시적 분기 제어</span></div>
+          <div class="cl-item"><span class="x">✗</span><span>"여기서 멈추고 <b>사람</b>을 기다려라" — 개입 지점</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;이건 create_agent가 부족하다는 뜻이 아님. 대부분의 작업은 자유 판단이 더 낫고 빠름. 천장에 닿는 건 "정해진 절차"가 필요한 특정 순간임 — 그 순간을 알아보는 게 핵심.</p>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>create_agent는 편리하나 흐름은 고정된 한 패턴임.</li>
+      <li>고정 순서·명시적 분기·개입 지점을 강제하기 어려움.</li>
+      <li>대부분엔 충분하나 정해진 절차가 필요한 순간 천장에 닿음.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 2: already on graph -->
+  <section class="reveal">
+    <div class="sec-no">12-2</div>
+    <h2>이미 그래프 위에 있었다</h2>
+    <p>LangGraph는 흐름을 <strong>노드(작업)·엣지(연결)</strong>로 직접 그리는 도구임. 놀랍게도 우리 에이전트는 처음부터 그 위에서 돌고 있었음 — <code>create_agent</code>는 "agent ↔ tools를 잇고 조건 반복하는" <strong>미리 만들어진 그래프</strong>였음.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 기성 그래프 vs 직접 그린 그래프</span>
+      <p class="wdesc">create_agent가 쓰던 기성 그래프와, 고급에서 우리가 직접 그릴 그래프를 비교함.</p>
+      <div class="ag-toggle" id="w2tog">
+        <button class="agbtn on" data-k="prebuilt">🏭 create_agent (기성 그래프)</button>
+        <button class="agbtn" data-k="custom">✏️ 직접 그린 그래프</button>
+      </div>
+      <div class="ag-graph">
+        <svg class="ag-svg" id="w2svg" viewBox="0 0 420 160"></svg>
+      </div>
+      <div class="ag-cap" id="w2cap"></div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;LangGraph는 create_agent의 "경쟁자"가 아니라 그 <b>토대</b>임. create_agent = 기성품, 직접 그래프 = 맞춤 제작. 둘 다 같은 엔진(LangGraph 런타임) 위에 있음. 메모리(체크포인터)도 LangGraph의 상태 관리였음(Part 10).</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>LangGraph는 노드·엣지로 흐름을 직접 그리는 도구임.</li>
+      <li>그린 그대로 실행 보장 — 모델 기분에 안 흔들림.</li>
+      <li>우리 에이전트도 이미 그 위에 — create_agent는 기성 그래프임.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 3: four signals -->
+  <section class="reveal">
+    <div class="sec-no">12-3</div>
+    <h2>그래프가 필요한 네 신호</h2>
+    <p>언제 직접 그래프를 그릴까? 다음 <strong>네 신호</strong> 중 강하게 켜지는 게 많으면 LangGraph를 고려함. 공통점은 "흐름 자체를 <strong>반드시 보장</strong>해야 함"임.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 내 작업의 신호 점검</span>
+      <p class="wdesc">내 작업에 해당하는 신호를 켜봄. 많이 켜질수록 그래프가 맞음.</p>
+      <div class="fs-grid" id="w3grid">
+        <div class="fs-card" data-k="loop"><div class="si">🔁</div><div class="sn">① 반복(루프)</div><div class="sd">조건 만족까지 단계를 되풀이 (검토 통과까지 수정→재검토)</div></div>
+        <div class="fs-card" data-k="branch"><div class="si">🔀</div><div class="sn">② 조건 분기</div><div class="sd">상황 따라 명시적으로 다른 길 (재고 있으면 주문, 없으면 알림)</div></div>
+        <div class="fs-card" data-k="state"><div class="si">📦</div><div class="sn">③ 장기 상태</div><div class="sd">여러 단계에 걸쳐 정보 누적·관리 (초안·의견·승인여부)</div></div>
+        <div class="fs-card" data-k="human"><div class="si">🙋</div><div class="sn">④ 사람 개입</div><div class="sd">특정 지점에서 반드시 멈추고 사람 확인 (발행 전 승인)</div></div>
+      </div>
+      <div class="fs-meter" id="w3meter"></div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;네 신호는 함께 나타나는 경우가 많음. "초안→검토→(통과 분기/반려 루프)→발행 전 승인"은 ①②③④가 모두 얽힌 전형적 그래프 사례임(Part 14). "반드시·절대·순서대로·~할 때까지"가 요구에 있으면 그래프 신호일 때가 많음.</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>그래프 신호: ①반복 ②조건 분기 ③장기 상태 ④사람 개입.</li>
+      <li>공통점은 "흐름 자체를 반드시 보장해야 함"임.</li>
+      <li>여러 신호가 강하게 켜지면 직접 그래프로 전환함.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 4: mix -->
+  <section class="reveal">
+    <div class="sec-no">12-4</div>
+    <h2>에이전트 vs 그래프 — 그리고 섞기</h2>
+    <p>에이전트는 <strong>즉흥 연주자</strong>(유연), 그래프는 <strong>악보 따르는 오케스트라</strong>(보장). 핵심 통찰: 둘은 대립이 아니라 <strong>계층</strong>임 — <strong>그래프의 한 노드 안에 에이전트를 넣을 수 있음.</strong></p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 계층적으로 섞인 시스템</span>
+      <p class="wdesc">큰 흐름은 그래프로 보장하고, 각 노드는 상황에 맞는 도구로 채움. Part 11의 문서 비서가 "초안 작성" 노드가 됨.</p>
+      <div class="mx-stage">
+        <div class="mx-graph">
+          <div class="mx-node graph"><span class="badge">그래프</span><span>전체 흐름: 초안 → 검토 → 분기 → 발행 (흐름 보장)</span></div>
+          <div class="mx-arrow">↓ 그 안의 각 노드는…</div>
+          <div class="mx-node agent"><span class="badge">에이전트</span><span>"초안 작성" 노드 = Part 11 문서 비서 (자유 판단)</span></div>
+          <div class="mx-node chain"><span class="badge">체인</span><span>"형식 정리" 노드 = 정해진 변환 (빠름)</span></div>
+          <div class="mx-node agent"><span class="badge">에이전트</span><span>"근거 보강" 노드 = RAG 에이전트</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;초급(체인)·중급(에이전트)·고급(그래프)은 위계가 아니라 <b>도구 상자</b>임. 그래프 안에 에이전트, 에이전트 안에 체인(도구) — 이런 중첩이 자연스러움. "전부 그래프"나 "전부 에이전트"는 대개 나쁜 설계임.</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>에이전트=자유 판단(유연), 그래프=명시적 제어(보장).</li>
+      <li>둘은 계층 — 그래프의 노드에 에이전트를 넣음.</li>
+      <li>큰 절차는 그래프로, 열린 작업은 에이전트로 — 섞어 씀.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 5: ladder -->
+  <section class="reveal">
+    <div class="sec-no">12-5</div>
+    <h2>도구의 사다리 — 가벼운 것부터</h2>
+    <p>그래프도 <strong>남용 경계</strong>가 있음(Part 6의 에이전트 경계와 같음). 설계·유지 비용이 큼. 정석은 <strong>가장 가벼운 것부터 시작해 필요할 때만 올리는 것</strong>임.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 사다리 오르기</span>
+      <p class="wdesc">각 단계를 눌러, 언제 그것을 쓰고 언제 위로 올라가는지 봄.</p>
+      <div class="ld-steps">
+        <div class="ld-conn">↑ 필요할 때만 올림 (무거워짐)</div>
+        <div class="ld-step" data-k="graph"><span class="lw">무거움</span><div><div class="ln">🕸️ 그래프</div><div class="ld">흐름을 반드시 보장해야 할 때</div></div></div>
+        <div class="ld-conn">↑</div>
+        <div class="ld-step" data-k="agent"><span class="lw">중간</span><div><div class="ln">🧭 에이전트</div><div class="ld">동적 판단·도구가 필요할 때</div></div></div>
+        <div class="ld-conn">↑</div>
+        <div class="ld-step on" data-k="chain"><span class="lw">가벼움</span><div><div class="ln">🛣️ 체인</div><div class="ld">정해진 변환이면 (여기서 시작!)</div></div></div>
+      </div>
+      <div class="ld-detail" id="w5detail"></div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;각 단계는 앞 단계를 품을 수 있어(그래프 안 에이전트, 에이전트 안 체인) 위로 올라가도 아래를 안 버림. "왜 그래프인가"에 네 신호로 답할 수 있어야 함 — "최신이라서"는 위험 신호.</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>그래프도 남용 경계가 있음 — 설계·유지 비용이 큼.</li>
+      <li>흐름 보장이 꼭 필요할 때만, 아니면 체인/에이전트로.</li>
+      <li>사다리: 체인→에이전트→그래프, 가벼운 것부터 필요할 때만.</li>
+    </ol></div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="next-card">
+    <div class="nl">NEXT · PART 13</div>
+    <div class="nt">StateGraph 직접 짜기</div>
+    <p style="margin-top:8px;">드디어 그래프를 손으로 짬 — 상태(state) 정의 → 노드 → 엣지 → 조건 분기 → 컴파일 → 실행. Part 10에서 본 "상태"를 직접 설계하며, 네 신호 중 ①반복 ②분기 ③상태를 구현함.</p>
+  </div>
+  <p style="margin-top:24px;">LangChain 에이전트 마스터 커리큘럼 · Part 12 / 18 · LangChain 1.0 기준</p>
+</footer>
+
+<script>
+const prog=document.getElementById('progress');
+addEventListener('scroll',()=>{const h=document.documentElement;prog.style.width=((h.scrollTop)/(h.scrollHeight-h.clientHeight)*100)+'%';});
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('in');}),{threshold:.12});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+
+/* ===== W2: graph svg ===== */
+const w2={
+  prebuilt:{cap:'create_agent가 쓰는 기성 그래프 — agent ↔ tools 두 노드를 잇고 조건 반복. 우리가 못 바꿈.',
+    svg:`<circle cx="110" cy="80" r="36" fill="#c2410c"/><text x="110" y="78" font-size="12" fill="#fff" text-anchor="middle">agent</text><text x="110" y="92" font-size="9" fill="#fff" text-anchor="middle">(모델)</text>
+         <circle cx="310" cy="80" r="36" fill="#2f6b5e"/><text x="310" y="78" font-size="12" fill="#fff" text-anchor="middle">tools</text><text x="310" y="92" font-size="9" fill="#fff" text-anchor="middle">(도구)</text>
+         <path d="M146 65 L274 65" stroke="#e8c07d" stroke-width="2" marker-end="url(#a12)"/><text x="210" y="56" font-size="9" fill="#cfc5b4" text-anchor="middle">tool_calls</text>
+         <path d="M274 95 L146 95" stroke="#e8c07d" stroke-width="2" marker-end="url(#a12)"/><text x="210" y="112" font-size="9" fill="#cfc5b4" text-anchor="middle">결과 → 반복</text>
+         <defs><marker id="a12" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="#e8c07d"/></marker></defs>`},
+  custom:{cap:'직접 그린 그래프 — 노드·엣지·분기·루프를 우리가 정의. 흐름이 그림대로 보장됨.',
+    svg:`<rect x="20" y="60" width="64" height="40" rx="8" fill="#2f6b5e"/><text x="52" y="84" font-size="10" fill="#fff" text-anchor="middle">초안</text>
+         <rect x="120" y="60" width="64" height="40" rx="8" fill="#2f6b5e"/><text x="152" y="84" font-size="10" fill="#fff" text-anchor="middle">검토</text>
+         <rect x="230" y="20" width="64" height="40" rx="8" fill="#c2410c"/><text x="262" y="44" font-size="10" fill="#fff" text-anchor="middle">발행</text>
+         <rect x="230" y="100" width="64" height="40" rx="8" fill="#a8762f"/><text x="262" y="124" font-size="10" fill="#fff" text-anchor="middle">수정</text>
+         <path d="M84 80 L120 80" stroke="#e8c07d" stroke-width="2" marker-end="url(#b12)"/>
+         <path d="M184 72 L230 45" stroke="#e8c07d" stroke-width="2" marker-end="url(#b12)"/><text x="212" y="55" font-size="8" fill="#9ec79a">통과</text>
+         <path d="M184 88 L230 118" stroke="#e8c07d" stroke-width="2" marker-end="url(#b12)"/><text x="200" y="112" font-size="8" fill="#e0935f">반려</text>
+         <path d="M262 100 Q200 130 152 100" stroke="#e8c07d" stroke-width="2" fill="none" stroke-dasharray="3 3" marker-end="url(#b12)"/><text x="200" y="148" font-size="8" fill="#cfc5b4" text-anchor="middle">재검토 루프</text>
+         <defs><marker id="b12" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="#e8c07d"/></marker></defs>`}
+};
+function renderW2(k){document.getElementById('w2svg').innerHTML=w2[k].svg;document.getElementById('w2cap').textContent=w2[k].cap;}
+document.querySelectorAll('#w2tog .agbtn').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('#w2tog .agbtn').forEach(x=>x.classList.remove('on'));b.classList.add('on');renderW2(b.dataset.k);}));
+renderW2('prebuilt');
+
+/* ===== W3: four signals ===== */
+const w3state={loop:false,branch:false,state:false,human:false};
+function renderW3(){
+  document.querySelectorAll('#w3grid .fs-card').forEach(c=>c.classList.toggle('on',w3state[c.dataset.k]));
+  const n=Object.values(w3state).filter(Boolean).length;
+  const m=document.getElementById('w3meter');
+  let txt,bg,col;
+  if(n===0){txt='신호를 켜보세요 — 내 작업에 해당하는 것을';bg='#efe7d8';col='#7a5a2a';}
+  else if(n===1){txt=`🟡 신호 ${n}개 — 에이전트로 버틸 수 있음. 굳이 그래프 안 써도 됨`;bg='#fbf3e6';col='#8a5a1a';}
+  else if(n<=2){txt=`🟠 신호 ${n}개 — 그래프를 고려할 만함`;bg='#f3e0d2';col='#9a5a2a';}
+  else{txt=`🔴 신호 ${n}개 — 그래프가 맞음! 흐름을 직접 그려 보장하세요`;bg='#f3ddd2';col='#9a3a14';}
+  m.textContent=txt;m.style.background=bg;m.style.color=col;
+}
+document.querySelectorAll('#w3grid .fs-card').forEach(c=>c.addEventListener('click',()=>{
+  w3state[c.dataset.k]=!w3state[c.dataset.k];renderW3();}));
+renderW3();
+
+/* ===== W5: ladder ===== */
+const w5={
+  chain:'<b>🛣️ 체인 (여기서 시작)</b> — 입력→출력이 정해진 변환. 요약·번역·분류·정형 추출. 가장 빠르고 저렴하고 안전함. 대부분은 여기서 충분함.',
+  agent:'<b>🧭 에이전트로 올림</b> — "도구를 골라 써야 한다 / 입력마다 경로가 달라진다"는 동적 판단이 필요해질 때. 체인 천장에 닿으면 올림.',
+  graph:'<b>🕸️ 그래프로 올림</b> — "흐름을 반드시 보장해야 한다"(반복·분기·상태·개입)는 네 신호가 강할 때. 에이전트 천장에 닿으면 올림. 미리 올리지 말 것.'
+};
+function renderW5(k){
+  document.querySelectorAll('.ld-step').forEach(s=>s.classList.toggle('on',s.dataset.k===k));
+  document.getElementById('w5detail').innerHTML=w5[k];
+}
+document.querySelectorAll('.ld-step').forEach(s=>s.addEventListener('click',()=>renderW5(s.dataset.k)));
+renderW5('chain');
+</script>
+</body>
+</html>

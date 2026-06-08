@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LangChain 에이전트 마스터 · 전체 커리큘럼</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Gowun+Dodum&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f4efe6;--card:#fbf8f2;--ink:#2b2723;--sub:#6f6457;--accent:#c2410c;
+    --accent-soft:#e9d5c4;--line:#e2d9c9;--teal:#2f6b5e;--gold:#a8762f;--purple:#7a4fa0;
+    --serif:'Gowun Batang',serif;--sans:'Gowun Dodum',sans-serif;--maxw:820px;color-scheme:light only;
+  }
+  @media (prefers-color-scheme:dark){:root{--bg:#f4efe6;--card:#fbf8f2;--ink:#2b2723;}}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.8;font-size:17px;-webkit-text-size-adjust:100%;
+    background-image:radial-gradient(circle at 15% 0%,rgba(194,65,12,.05),transparent 38%),radial-gradient(circle at 90% 100%,rgba(47,107,94,.05),transparent 42%);}
+  #progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:100;transition:width .1s linear;}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 22px;}
+  header.hero{max-width:var(--maxw);margin:0 auto;padding:84px 22px 36px;}
+  .eyebrow{color:var(--accent);font-size:13px;letter-spacing:.22em;font-weight:700;text-transform:uppercase;}
+  h1{font-family:var(--serif);font-weight:700;font-size:clamp(32px,6.5vw,52px);line-height:1.2;margin:14px 0 18px;letter-spacing:-.01em;}
+  .lead{font-size:18px;color:var(--sub);max-width:64ch;}
+  .hero-meta{margin-top:24px;display:flex;gap:10px;flex-wrap:wrap;}
+  .chip{font-size:12.5px;font-weight:700;letter-spacing:.04em;padding:6px 13px;border-radius:999px;background:var(--accent-soft);color:#8a3408;}
+  .chip.t{background:#d8e8e3;color:#225349;}
+
+  .overview{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px 24px;margin:24px 0;box-shadow:0 6px 22px rgba(80,60,30,.06);}
+  .overview h3{font-family:var(--serif);font-size:18px;margin-bottom:10px;color:var(--accent);}
+  .overview p{font-size:15px;color:var(--sub);margin-bottom:10px;}
+  .overview .files{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;}
+  .ftag{font-size:12px;background:#efe7d8;border-radius:8px;padding:5px 11px;}
+
+  .level{margin:36px 0;}
+  .level-head{display:flex;align-items:center;gap:12px;padding:14px 18px;border-radius:14px 14px 0 0;color:#fff;}
+  .level-head .lt{font-family:var(--serif);font-weight:700;font-size:20px;}
+  .level-head .ls{font-size:13px;opacity:.9;margin-left:auto;}
+  .level.beg .level-head{background:linear-gradient(100deg,#2f6b5e,#3f8676);}
+  .level.mid .level-head{background:linear-gradient(100deg,#a8762f,#c2923f);}
+  .level.adv .level-head{background:linear-gradient(100deg,#c2410c,#d65a26);}
+  .parts{border:1px solid var(--line);border-top:none;border-radius:0 0 14px 14px;overflow:hidden;}
+  .part{display:flex;gap:14px;padding:15px 18px;border-bottom:1px solid var(--line);background:var(--card);transition:.15s;cursor:pointer;}
+  .part:last-child{border-bottom:none;}
+  .part:hover{background:#fdf6ee;}
+  .part .pno{flex:none;width:42px;height:42px;border-radius:11px;display:grid;place-items:center;font-family:var(--serif);font-weight:700;font-size:15px;color:#fff;}
+  .level.beg .pno{background:var(--teal);}
+  .level.mid .pno{background:var(--gold);}
+  .level.adv .pno{background:var(--accent);}
+  .part .pbody{flex:1;}
+  .part .ptitle{font-weight:700;font-size:15.5px;}
+  .part .pdesc{font-size:13.5px;color:var(--sub);margin-top:2px;}
+  .part .papi{margin-top:6px;display:none;}
+  .part.open .papi{display:block;}
+  .part .papi .k{font-size:11.5px;font-family:monospace;background:#efe7d8;color:#8a3408;border-radius:6px;padding:3px 8px;margin:2px 3px 2px 0;display:inline-block;}
+  .part .chev{flex:none;color:var(--sub);font-size:12px;align-self:center;transition:.2s;}
+  .part.open .chev{transform:rotate(90deg);}
+  .part-links{margin-top:14px;display:none;gap:10px;flex-wrap:wrap;}
+  .part.open .part-links{display:flex;}
+  .btn-link{font-size:13px;font-weight:700;text-decoration:none;padding:6px 14px;border-radius:8px;display:inline-flex;align-items:center;gap:6px;transition:all .2s;border:1px solid var(--line);box-shadow:0 2px 5px rgba(0,0,0,0.03);}
+  .btn-link:hover{transform:translateY(-1px);box-shadow:0 4px 10px rgba(0,0,0,0.08);}
+  .btn-link.theory{background:#e8f4f1;color:#1e5146;border-color:#c8e2db;}
+  .btn-link.theory:hover{background:#2f6b5e;color:#fff;border-color:#2f6b5e;}
+  .btn-link.web{background:#fdf5e6;color:#8a652e;border-color:#f5e5cd;}
+  .btn-link.web:hover{background:#a8762f;color:#fff;border-color:#a8762f;}
+  .btn-link.practice{background:#fdf2ec;color:#a0360b;border-color:#f5dfd2;}
+  .btn-link.practice:hover{background:#c2410c;color:#fff;border-color:#c2410c;}
+
+  .principle{text-align:center;font-family:var(--serif);font-size:clamp(18px,3vw,24px);color:var(--accent);font-weight:700;padding:28px 20px;background:#efe7d8;border-radius:16px;margin:40px 0;}
+  .howto{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px 24px;margin:24px 0;}
+  .howto h3{font-family:var(--serif);font-size:18px;margin-bottom:12px;color:var(--accent);}
+  .howto ul{list-style:none;}
+  .howto li{padding:7px 0;font-size:14.5px;border-bottom:1px dashed var(--line);}
+  .howto li:last-child{border:none;}
+  .howto li b{color:var(--ink);}
+
+  footer{max-width:var(--maxw);margin:0 auto;padding:30px 22px 80px;color:var(--sub);font-size:14px;border-top:1px solid var(--line);text-align:center;}
+  .reveal{opacity:0;transform:translateY(16px);transition:opacity .6s ease,transform .6s ease;}
+  .reveal.in{opacity:1;transform:none;}
+</style>
+</head>
+<body>
+<div id="progress"></div>
+
+<header class="hero">
+  <div class="eyebrow">Curriculum · LangChain 1.0</div>
+  <h1>LangChain<br>에이전트 마스터</h1>
+  <p class="lead">단순한 모델 호출부터 프로덕션급 멀티에이전트 시스템까지. 초급(체인)·중급(에이전트)·고급(그래프·운영)의 19개 파트로, <strong>왜·언제·어떻게</strong>를 익히는 한국어 실전 커리큘럼임.</p>
+  <div class="hero-meta">
+    <span class="chip">📚 Part 0~18 · 19개 파트</span>
+    <span class="chip t">파트당 이론·웹·실습 3종</span>
+    <span class="chip t">LangChain · LangGraph 1.0</span>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <div class="overview reveal">
+    <h3>이 커리큘럼의 구성</h3>
+    <p>각 파트는 세 가지 자료로 이뤄짐 — 개념을 다지는 <b>이론 문서</b>, 직접 만져보는 <b>인터랙티브 웹 강의</b>, Gemini로 돌려보는 <b>실습 노트북</b>임. 이론으로 읽고, 웹으로 체감하고, 노트북으로 손에 익히는 흐름임.</p>
+    <div class="files">
+      <span class="ftag">📄 이론 .md</span>
+      <span class="ftag">🖥️ 웹 강의 .html (섹션 5 · 위젯 5)</span>
+      <span class="ftag">📓 실습 .ipynb (Gemini)</span>
+    </div>
+  </div>
+
+  <!-- 초급 -->
+  <div class="level beg reveal">
+    <div class="level-head"><span class="lt">🟢 초급 — 기본기</span><span class="ls">Part 0~5 · 정해진 변환(체인)</span></div>
+    <div class="parts" id="beg"></div>
+  </div>
+
+  <!-- 중급 -->
+  <div class="level mid reveal">
+    <div class="level-head"><span class="lt">🟡 중급 — 에이전트</span><span class="ls">Part 6~11 · 자유 판단</span></div>
+    <div class="parts" id="mid"></div>
+  </div>
+
+  <!-- 고급 -->
+  <div class="level adv reveal">
+    <div class="level-head"><span class="lt">🔴 고급 — 제어와 운영</span><span class="ls">Part 12~18 · 흐름 제어·측정·운영</span></div>
+    <div class="parts" id="adv"></div>
+  </div>
+
+  <div class="principle reveal">"올바른 도구를, 올바른 자리에, 필요한 만큼만."</div>
+
+  <div class="howto reveal">
+    <h3>자료 사용 안내</h3>
+    <ul>
+      <li><b>학습 순서</b> — Part 0부터 순서대로. 각 파트는 앞 파트를 딛고 쌓이며, 고급은 초·중급 개념을 계층적으로 결합함.</li>
+      <li><b>파트마다</b> — 이론(.md)으로 개념 → 웹(.html)으로 인터랙티브 체감 → 실습(.ipynb)으로 Gemini 실행. 노트북엔 미니 과제와 정답이 포함됨.</li>
+      <li><b>실습 환경</b> — Gemini API 키 1개면 전 과정 실행 가능. 무료 티어(Flash)로 충분함. LangSmith(Part 16)만 별도 계정이 필요하나, 키 없이도 로컬 미니 평가로 원리를 체험함.</li>
+      <li><b>API 최신성</b> — 모든 코드는 LangChain·LangGraph 1.0 기준. 라이브러리는 빠르게 진화하므로 공식 문서(docs.langchain.com)와 함께 확인하는 습관을 권함.</li>
+    </ul>
+  </div>
+
+</main>
+
+<footer>
+  <p>LangChain 에이전트 마스터 커리큘럼 · Part 0~18 · 파트당 이론·웹·실습 3종 (총 57개 파일)</p>
+  <p style="margin-top:8px;">LangChain · LangGraph 1.0 기준 · 한국어 실전 강의</p>
+</footer>
+
+<script>
+const prog=document.getElementById('progress');
+addEventListener('scroll',()=>{const h=document.documentElement;prog.style.width=((h.scrollTop)/(h.scrollHeight-h.clientHeight)*100)+'%';});
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('in');}),{threshold:.08});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+
+const parts={
+  beg:[
+    ["0","왜 LangChain · 1.0의 그림","LLM의 한계 → 에이전트는 LangGraph 위에서 돈다 → 세 계층","LLM 한계 · 1.0 구조","Part0_이론_왜랭체인인가.md","Part0_실습_환경준비와첫호출.ipynb"],
+    ["1","환경 & 첫 LLM 호출","ChatModel · 3가지 메시지 · invoke/stream/batch","ChatGoogleGenerativeAI · AIMessage","Part1_이론_환경과첫호출.md","Part1_실습_첫호출제대로다루기.ipynb"],
+    ["2","프롬프트 템플릿","PromptTemplate · ChatPromptTemplate · partial · Few-shot","from_template · from_messages","Part2_이론_프롬프트템플릿.md","Part2_실습_프롬프트템플릿.ipynb"],
+    ["3","LCEL 파이프 (|)","Runnable · 파이프 · Parallel · Passthrough · Lambda","| · RunnableParallel","Part3_이론_LCEL파이프.md","Part3_실습_LCEL파이프.ipynb"],
+    ["4","출력 파서","StrOutputParser · JsonOutputParser · 구조화 출력","with_structured_output · Pydantic","Part4_이론_출력파서.md","Part4_실습_출력파서.ipynb"],
+    ["5","첫 미니 프로젝트","체인을 단계별로 조립 → 마케팅 카드 생성기","체인 캡스톤","Part5_이론_첫미니프로젝트.md","Part5_실습_첫미니프로젝트.ipynb"],
+  ],
+  mid:[
+    ["6","체인 vs 에이전트","결정적 차이 = 흐름 제어의 주체 · ReAct 루프 · 남용 경계","ReAct · 자유 판단","Part6_이론_체인vs에이전트.md","Part6_실습_체인vs에이전트.ipynb"],
+    ["7","도구(Tool) 정의","@tool · docstring/시그니처 = 명세 · args_schema · 좋은 설계","@tool · args_schema","Part7_이론_도구정의.md","Part7_실습_도구정의.ipynb"],
+    ["8","RAG 기초","로더·청킹 · 임베딩(의미 좌표) · 벡터스토어 · retriever · RAG 체인","gemini-embedding-001 · InMemoryVectorStore","Part8_이론_RAG기초.md","Part8_실습_RAG기초.ipynb"],
+    ["9","create_agent로 진짜 에이전트","정식 생성 · 도구 조합 · RAG를 도구로 · system_prompt · messages 추적","create_agent · system_prompt","Part9_이론_create_agent로진짜에이전트.md","Part9_실습_create_agent로진짜에이전트.ipynb"],
+    ["10","메모리와 상태","체크포인터 · thread_id · 멀티턴 · '메모리 = LangGraph 상태'","InMemorySaver · thread_id","Part10_이론_메모리와상태.md","Part10_실습_메모리와상태.ipynb"],
+    ["11","중급 프로젝트 — 문서 작성 비서","도구+RAG+메모리 통합 → 한계(자유 판단) → 고급 다리","통합 캡스톤","Part11_이론_중급프로젝트_문서비서.md","Part11_실습_중급프로젝트_문서비서.ipynb"],
+  ],
+  adv:[
+    ["12","왜 LangGraph인가","create_agent 천장 · 노드·엣지 · 네 신호(반복·분기·상태·개입) · 사다리","그래프 전환 판단","Part12_이론_왜LangGraph인가.md","Part12_실습_왜LangGraph인가.ipynb"],
+    ["13","StateGraph 직접 짜기","상태(TypedDict·리듀서) · 노드 · 엣지 · 조건 분기 · 컴파일·루프","StateGraph · add_conditional_edges","Part13_이론_StateGraph직접짜기.md","Part13_실습_StateGraph직접짜기.ipynb"],
+    ["14","Human-in-the-loop","비가역·고위험 안전벨트 · interrupt · Command(resume) · 승인/수정/반려","interrupt · Command","Part14_이론_HumanInTheLoop.md","Part14_실습_HumanInTheLoop.ipynb"],
+    ["15","멀티에이전트 오케스트레이션","전문 에이전트 분리 · 감독자(supervisor) · 핸드오프 · 공유 상태","create_supervisor · handoff","Part15_이론_멀티에이전트오케스트레이션.md","Part15_실습_멀티에이전트오케스트레이션.ipynb"],
+    ["16","관측·평가 (LangSmith)","트레이싱 · 평가 기준 · 평가셋·evaluator · 운영 모니터링","@traceable · evaluate · dataset","Part16_이론_관측과평가_LangSmith.md","Part16_실습_관측과평가_LangSmith.ipynb"],
+    ["17","배포와 신뢰성","영속 상태 · 재시도·타임아웃 · 안전장치 · 비용·지연 관리","SqliteSaver · recursion_limit · max_retries","Part17_이론_배포와신뢰성.md","Part17_실습_배포와신뢰성.ipynb"],
+    ["18","최종 프로젝트 — 문서 제작 파이프라인","그래프+에이전트+RAG+HITL+신뢰성 계층 결합 · 졸업 🎓","전체 결합 캡스톤","Part18_이론_최종프로젝트_문서제작파이프라인.md","Part18_실습_최종프로젝트_문서제작파이프라인.ipynb"],
+  ],
+};
+// GitHub 저장소 연동 시 주소를 입력하세요 (예: "username/repository-name")
+// 입력 시 실습 코드 버튼이 구글 코랩(Colab) 실행 링크로 자동 전환됩니다.
+const GITHUB_REPO = "collin421/langchain_class_modules";
+
+function render(id){
+  document.getElementById(id).innerHTML=parts[id].map(([no,title,desc,api,theory,practice])=> {
+    const isGithub = !!GITHUB_REPO;
+    const practiceUrl = isGithub 
+      ? `https://colab.research.google.com/github/${GITHUB_REPO}/blob/main/${practice}`
+      : practice;
+    const practiceLabel = isGithub ? "🚀 Colab에서 실행" : "📓 실습 코드";
+    const clickHandler = isGithub 
+      ? "event.stopPropagation()" 
+      : "event.stopPropagation(); alert('GitHub 원격 저장소를 연동하면 클릭 한 번으로 Colab에서 바로 실행할 수 있습니다.\\n현재는 로컬 파일이 다운로드되거나 텍스트로 열립니다.')";
+
+    return `<div class="part" onclick="this.classList.toggle('open')">
+       <div class="pno">${no}</div>
+       <div class="pbody">
+         <div class="ptitle">Part ${no}. ${title}</div>
+         <div class="pdesc">${desc}</div>
+         <div class="papi">${api.split(' · ').map(a=>`<span class="k">${a}</span>`).join('')}</div>
+         <div class="part-links">
+           <a href="${theory}" class="btn-link theory" onclick="event.stopPropagation()" target="_blank">📄 이론 문서</a>
+           <a href="Part${no}_웹강의.html" class="btn-link web" onclick="event.stopPropagation()" target="_blank">🖥️ 웹 강의</a>
+           <a href="${practiceUrl}" class="btn-link practice" onclick="${clickHandler}" target="_blank">${practiceLabel}</a>
+         </div>
+       </div>
+       <div class="chev">▶</div>
+     </div>`;
+  }).join('');
+}
+["beg","mid","adv"].forEach(render);
+</script>
+</body>
+</html>

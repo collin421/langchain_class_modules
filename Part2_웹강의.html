@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Part 2 · 프롬프트 템플릿</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Gowun+Dodum&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f4efe6;--card:#fbf8f2;--ink:#2b2723;--sub:#6f6457;--accent:#c2410c;
+    --accent-soft:#e9d5c4;--line:#e2d9c9;--teal:#2f6b5e;--gold:#a8762f;
+    --serif:'Gowun Batang',serif;--sans:'Gowun Dodum',sans-serif;--maxw:760px;color-scheme:light only;
+  }
+  @media (prefers-color-scheme:dark){:root{--bg:#f4efe6;--card:#fbf8f2;--ink:#2b2723;}}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.85;font-size:17px;-webkit-text-size-adjust:100%;
+    background-image:radial-gradient(circle at 20% 0%,rgba(194,65,12,.04),transparent 40%),radial-gradient(circle at 90% 100%,rgba(47,107,94,.04),transparent 45%);}
+  #progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:100;transition:width .1s linear;}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 22px;}
+  header.hero{max-width:var(--maxw);margin:0 auto;padding:88px 22px 40px;}
+  .eyebrow{color:var(--accent);font-size:13px;letter-spacing:.22em;font-weight:700;text-transform:uppercase;}
+  h1{font-family:var(--serif);font-weight:700;font-size:clamp(30px,6vw,46px);line-height:1.25;margin:14px 0 18px;letter-spacing:-.01em;}
+  .lead{font-size:18px;color:var(--sub);max-width:62ch;}
+  .hero-meta{margin-top:26px;display:flex;gap:10px;flex-wrap:wrap;}
+  .chip{font-size:12.5px;font-weight:700;letter-spacing:.04em;padding:6px 13px;border-radius:999px;background:var(--accent-soft);color:#8a3408;}
+  .chip.t{background:#d8e8e3;color:#225349;}
+  section{padding:54px 0 30px;border-top:1px solid var(--line);}
+  section:first-of-type{border-top:none;}
+  .sec-no{font-family:var(--serif);font-size:14px;color:var(--accent);font-weight:700;letter-spacing:.1em;}
+  h2{font-family:var(--serif);font-weight:700;font-size:clamp(23px,4.4vw,31px);margin:6px 0 20px;line-height:1.3;}
+  p{margin:0 0 16px;}
+  .sub{color:var(--sub);}
+  strong{color:var(--accent);font-weight:700;}
+  code{font-family:'Gowun Dodum',monospace;background:#efe7d8;color:#8a3408;padding:1.5px 7px;border-radius:6px;font-size:.92em;}
+  pre{background:#2b2723;color:#f4efe6;border-radius:12px;padding:16px 18px;overflow-x:auto;font-size:14px;line-height:1.7;margin:16px 0;}
+  pre code{background:none;color:inherit;padding:0;}
+  pre .k{color:#e0935f;}pre .s{color:#9ec79a;}pre .c{color:#8b8175;font-style:italic;}pre .v{color:#e8c07d;}
+  .note{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px;padding:14px 18px;margin:18px 0;font-size:15.5px;color:var(--sub);}
+  .note b{color:var(--accent);}
+  .summary{background:#efe7d8;border-radius:12px;padding:18px 20px;margin:22px 0 4px;}
+  .summary .h{font-family:var(--serif);font-weight:700;color:var(--accent);font-size:15px;letter-spacing:.05em;margin-bottom:8px;}
+  .summary ol{margin:0;padding-left:20px;}.summary li{margin:5px 0;font-size:15.5px;}
+  .widget{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;margin:26px 0;box-shadow:0 6px 22px rgba(80,60,30,.06);}
+  .widget .wlabel{display:inline-block;font-size:11.5px;font-weight:700;letter-spacing:.14em;color:#fff;background:var(--accent);padding:4px 11px;border-radius:999px;margin-bottom:16px;}
+  .wdesc{font-size:14.5px;margin-bottom:14px;color:var(--sub);}
+
+  /* W1: stamp fill */
+  .stamp-inputs{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
+  .fld{flex:1;min-width:130px;}
+  .fld label{font-size:12px;font-weight:700;color:var(--sub);display:block;margin-bottom:4px;}
+  .fld select,.fld input{width:100%;border:1.5px solid var(--line);border-radius:9px;padding:9px 11px;font-family:var(--sans);font-size:14px;background:#fff;color:var(--ink);}
+  .tmpl-view{background:#2b2723;color:#f4efe6;border-radius:10px;padding:14px 16px;font-family:monospace;font-size:13.5px;line-height:1.9;}
+  .slot{background:var(--gold);color:#2b2723;padding:1px 7px;border-radius:5px;font-weight:700;transition:.2s;}
+  .slot.filled{background:#9ec79a;}
+  .arrow-down{text-align:center;color:var(--accent);font-size:20px;margin:8px 0;}
+  .result-line{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 15px;font-size:14px;}
+
+  /* W2: prompt vs chat */
+  .pc-toggle{display:flex;gap:8px;margin-bottom:14px;}
+  .pcbtn{flex:1;border:1.5px solid var(--line);background:#fff;border-radius:9px;padding:11px;cursor:pointer;font-family:var(--sans);font-weight:700;font-size:13.5px;color:var(--sub);transition:.15s;}
+  .pcbtn.on{border-color:var(--accent);background:var(--accent);color:#fff;}
+  .pc-stage{background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px;}
+  .pc-out{font-size:13.5px;}
+  .pc-msg{border-radius:9px;padding:9px 12px;margin:7px 0;}
+  .pc-msg.sys{background:#d8e8e3;border-left:4px solid var(--teal);}
+  .pc-msg.hum{background:var(--accent-soft);border-left:4px solid var(--accent);}
+  .pc-msg.plain{background:#efe7d8;border-left:4px solid var(--gold);}
+  .pc-msg .r{font-weight:700;font-size:11px;letter-spacing:.05em;display:block;margin-bottom:2px;}
+  .pc-msg.sys .r{color:#225349;}.pc-msg.hum .r{color:#8a3408;}.pc-msg.plain .r{color:#7a5a2a;}
+
+  /* W3: partial */
+  .pt-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
+  .pt-chip{border:1.5px solid var(--line);background:#fff;border-radius:999px;padding:7px 14px;font-size:13px;font-weight:700;cursor:pointer;transition:.18s;}
+  .pt-chip.fixed{background:#d8e8e3;border-color:var(--teal);color:#225349;}
+  .pt-state{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px 16px;font-size:13.5px;}
+  .pt-state .lbl{font-weight:700;color:var(--sub);font-size:12px;}
+  .pt-vars{font-family:monospace;font-size:13px;margin-top:4px;}
+
+  /* W4: few-shot builder */
+  .fs-ex{background:#fff;border:1px solid var(--line);border-radius:9px;padding:10px 13px;margin:7px 0;font-family:monospace;font-size:12.5px;display:flex;justify-content:space-between;align-items:center;}
+  .fs-ex.off{opacity:.35;}
+  .fs-ex .tog{cursor:pointer;font-size:12px;border:1px solid var(--line);border-radius:6px;padding:2px 8px;background:#fdfaf4;font-family:var(--sans);font-weight:700;}
+  .fs-prompt{background:#2b2723;color:#9ec79a;border-radius:10px;padding:14px;font-family:monospace;font-size:12.5px;white-space:pre-wrap;margin-top:12px;line-height:1.7;}
+  .fs-prompt .suf{color:#e8c07d;}
+  .fs-quality{margin-top:10px;font-size:13px;font-weight:700;text-align:center;padding:8px;border-radius:8px;}
+
+  /* W5: error catcher */
+  .ec-stage{background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px;}
+  .ec-tmpl{font-family:monospace;font-size:13px;background:#efe7d8;border-radius:8px;padding:10px 12px;margin-bottom:12px;}
+  .ec-keys{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
+  .ec-key{border:1.5px solid var(--line);background:#fff;border-radius:8px;padding:7px 13px;font-family:monospace;font-size:13px;cursor:pointer;transition:.15s;}
+  .ec-key.on{border-color:var(--teal);background:#d8e8e3;color:#225349;font-weight:700;}
+  .ec-result{padding:11px 14px;border-radius:9px;font-size:13.5px;}
+  .ec-result.ok{background:#d8e8e3;color:#225349;}
+  .ec-result.err{background:#f3ddd2;color:#9a3a14;font-family:monospace;}
+
+  footer{max-width:var(--maxw);margin:0 auto;padding:30px 22px 80px;color:var(--sub);font-size:14px;border-top:1px solid var(--line);}
+  .next-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin:20px 0 0;}
+  .next-card .nl{font-size:12px;letter-spacing:.14em;color:var(--accent);font-weight:700;}
+  .next-card .nt{font-family:var(--serif);font-weight:700;font-size:18px;margin-top:4px;}
+  .reveal{opacity:0;transform:translateY(18px);transition:opacity .6s ease,transform .6s ease;}
+  .reveal.in{opacity:1;transform:none;}
+  @media(max-width:480px){body{font-size:16px;}.stamp-inputs{flex-direction:column;}}
+</style>
+</head>
+<body>
+<div id="progress"></div>
+
+<header class="hero">
+  <div class="eyebrow">LangChain 에이전트 마스터 · Part 2</div>
+  <h1>프롬프트 템플릿</h1>
+  <p class="lead">형식은 똑같고 내용만 바뀌는 질문을 매번 손으로 쓰는 대신, 빈칸이 뚫린 틀을 한 번 만들어 변수만 갈아 끼워 찍어냄. 이 "틀 + 변수" 구조가 다음 파트의 LCEL 파이프로 이어지는 다리임.</p>
+  <div class="hero-meta">
+    <span class="chip">🟢 초급 · 2/5</span>
+    <span class="chip t">PromptTemplate</span>
+    <span class="chip t">예상 35분</span>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- Section 1: 왜 템플릿 + 도장 위젯 -->
+  <section class="reveal">
+    <div class="sec-no">2-1 · 2-2</div>
+    <h2>왜 템플릿인가 — 빈칸 양식지</h2>
+    <p>같은 작업을 여러 입력에 반복할 때 문자열을 <code>+</code>로 직접 조립하면 금세 지저분해짐. <strong>프롬프트 템플릿</strong>은 빈칸이 뚫린 양식지임 — 양식은 한 번 만들고, 빈칸만 바꿔 끼움.</p>
+    <pre><code><span class="k">from</span> langchain_core.prompts <span class="k">import</span> PromptTemplate
+
+template = PromptTemplate.from_template(
+    <span class="s">"다음 상품을 {tone} 톤으로 소개해줘: {product}"</span>
+)
+template.invoke({<span class="s">"product"</span>: <span class="s">"베이지 니트"</span>, <span class="s">"tone"</span>: <span class="s">"감성적인"</span>})</code></pre>
+    <p class="sub"><code>from_template</code>은 <strong>도장 새기기</strong>임. 도장을 한 번 새겨 두면 종이마다 빈칸만 채워 무한히 찍어낼 수 있음.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 도장 찍기</span>
+      <p class="wdesc">아래 빈칸 값을 바꾸면 템플릿의 슬롯이 실시간으로 채워짐. 양식은 그대로, 내용만 바뀌는 걸 봄.</p>
+      <div class="stamp-inputs">
+        <div class="fld"><label>product</label><input id="w1prod" value="베이지 니트"></div>
+        <div class="fld"><label>tone</label>
+          <select id="w1tone"><option>감성적인</option><option>시크한</option><option>유머러스한</option><option>고급스러운</option></select></div>
+      </div>
+      <div class="tmpl-view" id="w1tmpl"></div>
+      <div class="arrow-down">↓ .invoke()</div>
+      <div class="result-line" id="w1res"></div>
+    </div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>문자열 직접 조립은 반복·수정·실수에 약함.</li>
+      <li>템플릿은 빈칸 양식지 — 변수만 갈아 끼움.</li>
+      <li><code>from_template</code> + <code>.invoke({...})</code>로 찍어냄.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 2: PromptTemplate vs ChatPromptTemplate -->
+  <section class="reveal">
+    <div class="sec-no">2-3</div>
+    <h2>ChatPromptTemplate — 메시지 템플릿</h2>
+    <p>채팅 모델은 역할이 붙은 메시지로 대화함. <code>ChatPromptTemplate</code>은 System/Human 역할을 살리면서 변수를 끼움. <code>("system", "...")</code> 같은 <strong>(역할, 템플릿) 튜플</strong>로 지정함.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 두 템플릿의 결과 비교</span>
+      <p class="wdesc">같은 내용을 두 템플릿으로 만들면 결과물이 어떻게 다른지 봄. 채팅 모델엔 오른쪽(메시지 리스트)이 기본임.</p>
+      <div class="pc-toggle" id="w2tog">
+        <button class="pcbtn on" data-k="prompt">PromptTemplate</button>
+        <button class="pcbtn" data-k="chat">ChatPromptTemplate</button>
+      </div>
+      <div class="pc-stage"><div class="pc-out" id="w2out"></div></div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;대화 기록을 통째로 끼울 자리가 필요하면 <code>MessagesPlaceholder</code>를 씀(메모리·Part 10에서 재등장). 채팅 모델 실무는 거의 <code>ChatPromptTemplate</code>이 기본임.</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li><code>ChatPromptTemplate</code>은 역할이 붙은 메시지를 템플릿으로 묶음.</li>
+      <li><code>("system","...")</code> 튜플로 역할+템플릿을 지정함.</li>
+      <li>결과는 ChatModel에 그대로 넣는 메시지 리스트임.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 3: partial -->
+  <section class="reveal">
+    <div class="sec-no">2-4</div>
+    <h2>변수 주입 — partial로 미리 고정</h2>
+    <p>템플릿은 <code>input_variables</code>로 자신의 빈칸을 알고 있음. <code>partial()</code>로 일부 변수를 <strong>미리 고정</strong>하면, 남은 변수만 나중에 채우면 됨.</p>
+    <p class="sub"><code>partial</code>은 <strong>도장에 미리 새겨 둔 회사 로고</strong>와 같음. 로고(브랜드명)는 이미 박혀 있고, 가변 정보(상품명)만 그때그때 채움.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 변수 고정하기</span>
+      <p class="wdesc">템플릿 <code>"{brand}의 {product} 문구를 써줘"</code>. 변수를 눌러 고정/해제하며 남은 빈칸이 어떻게 줄어드는지 봄.</p>
+      <div class="pt-row" id="w3vars">
+        <span class="pt-chip" data-v="brand">brand</span>
+        <span class="pt-chip" data-v="product">product</span>
+      </div>
+      <div class="pt-state">
+        <span class="lbl">고정된 변수 (partial)</span><div class="pt-vars" id="w3fixed">없음</div>
+        <span class="lbl" style="display:block;margin-top:10px;">호출 시 채워야 할 빈칸 (input_variables)</span><div class="pt-vars" id="w3remain"></div>
+        <div style="margin-top:10px;font-size:13px;color:var(--sub);" id="w3hint"></div>
+      </div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;<code>partial</code>에는 값 대신 <b>함수</b>도 넣을 수 있음. "현재 시각"처럼 호출 때마다 달라져야 하는 값은 함수를 걸어 매번 새로 계산되게 함.</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>템플릿은 <code>input_variables</code>로 빈칸 목록을 앎.</li>
+      <li><code>.invoke()</code> 키가 목록과 맞아야 하며, 누락 시 오류남.</li>
+      <li><code>partial</code>로 일부 변수(값·함수)를 미리 고정함.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 4: few-shot -->
+  <section class="reveal">
+    <div class="sec-no">2-5</div>
+    <h2>Few-shot — 예시로 형식 가르치기</h2>
+    <p>지시만 주는 <strong>zero-shot</strong> 대신, 잘 된 예시 몇 개를 보여주는 <strong>few-shot</strong>은 출력 형식·스타일을 훨씬 잘 따르게 만듦. 신입에게 "이렇게 쓰면 돼"라며 견본을 보여주는 것과 같음.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 예시를 켜고 끄며 비교</span>
+      <p class="wdesc">예시를 켜고 끄면 완성 프롬프트가 어떻게 바뀌는지, 그리고 형식 통제력이 어떻게 달라지는지 봄.</p>
+      <div id="w4exs"></div>
+      <div class="fs-prompt" id="w4prompt"></div>
+      <div class="fs-quality" id="w4qual"></div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;채팅 모델용은 <code>FewShotChatMessagePromptTemplate</code>, 예시가 많으면 <code>ExampleSelector</code>로 입력과 비슷한 예시를 자동 선별함. 예시는 질 좋은 2~5개가 양보다 중요함.</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>few-shot은 예시로 출력 형식·스타일을 가르침.</li>
+      <li><code>FewShotPromptTemplate</code> = 예시 틀 + 예시 데이터 + suffix.</li>
+      <li>잘 고른 2~5개가 형식 통제에 효과적임.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 5: error catcher (변수 누락) -->
+  <section class="reveal">
+    <div class="sec-no">자가 점검</div>
+    <h2>가장 흔한 에러 — 변수 누락</h2>
+    <p>초급자가 가장 자주 만나는 오류는 "채워야 할 빈칸을 빠뜨린" 경우임. <code>input_variables</code>를 떠올리며 어떤 키를 넣어야 하는지 직접 맞춰봄.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 빈칸 채우기 점검</span>
+      <p class="wdesc">아래 템플릿을 호출하려면 어떤 키가 필요할까? 키를 골라 켜고 "호출"이 성공하는지 봄.</p>
+      <div class="ec-stage">
+        <div class="ec-tmpl">"{brand}의 {product}를 {tone} 톤으로 소개해줘"</div>
+        <div class="ec-keys" id="w5keys">
+          <span class="ec-key" data-k="brand">brand</span>
+          <span class="ec-key" data-k="product">product</span>
+          <span class="ec-key" data-k="tone">tone</span>
+          <span class="ec-key" data-k="color">color</span>
+        </div>
+        <div class="ec-result" id="w5res"></div>
+      </div>
+    </div>
+
+    <div class="summary"><div class="h">핵심 정리</div><ol>
+      <li>호출 딕셔너리의 키 = 템플릿의 <code>input_variables</code> (정확히 일치).</li>
+      <li>빠뜨리면 "변수 누락" 오류, 불필요한 키는 무시되거나 경고.</li>
+      <li>막히면 <code>template.input_variables</code>를 찍어 확인하면 됨.</li>
+    </ol></div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="next-card">
+    <div class="nl">NEXT · PART 3</div>
+    <div class="nt">LCEL 파이프(|)의 원리</div>
+    <p style="margin-top:8px;">이제 두 개의 Runnable 블록(프롬프트·모델)을 파이프 하나로 잇음 — <code>프롬프트 | 모델</code>. LangChain의 심장이자 초급의 정점인 LCEL을 배움.</p>
+  </div>
+  <p style="margin-top:24px;">LangChain 에이전트 마스터 커리큘럼 · Part 2 / 18 · LangChain 1.0 기준</p>
+</footer>
+
+<script>
+const prog=document.getElementById('progress');
+addEventListener('scroll',()=>{const h=document.documentElement;prog.style.width=((h.scrollTop)/(h.scrollHeight-h.clientHeight)*100)+'%';});
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('in');}),{threshold:.12});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+
+/* ===== W1: stamp ===== */
+const w1p=document.getElementById('w1prod'),w1t=document.getElementById('w1tone');
+function renderW1(){
+  const prod=w1p.value||'___', tone=w1t.value;
+  document.getElementById('w1tmpl').innerHTML=
+    `"다음 상품을 <span class="slot filled">${tone}</span> 톤으로 소개해줘: <span class="slot filled">${prod}</span>"`;
+  document.getElementById('w1res').textContent=`다음 상품을 ${tone} 톤으로 소개해줘: ${prod}`;
+}
+w1p.addEventListener('input',renderW1);w1t.addEventListener('change',renderW1);renderW1();
+
+/* ===== W2: prompt vs chat ===== */
+function renderW2(k){
+  const out=document.getElementById('w2out');
+  if(k==='prompt'){
+    out.innerHTML=`<div class="pc-msg plain"><span class="r">단일 문자열 (PromptText)</span>너는 리리마켓의 친절한 쇼핑 도우미야. 베이지 니트에 어울리는 코디를 추천해줘.</div>
+    <p class="sub" style="font-size:12.5px;margin:8px 0 0;">→ 역할 구분 없이 한 덩어리. 단순 텍스트 모델·간단한 체인에 적합함.</p>`;
+  }else{
+    out.innerHTML=`<div class="pc-msg sys"><span class="r">SystemMessage</span>너는 리리마켓의 친절한 쇼핑 도우미야.</div>
+    <div class="pc-msg hum"><span class="r">HumanMessage</span>베이지 니트에 어울리는 코디를 추천해줘.</div>
+    <p class="sub" style="font-size:12.5px;margin:8px 0 0;">→ 역할이 분리된 메시지 리스트. 채팅 모델(ChatModel)에 그대로 투입 가능함.</p>`;
+  }
+}
+document.querySelectorAll('#w2tog .pcbtn').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('#w2tog .pcbtn').forEach(x=>x.classList.remove('on'));b.classList.add('on');renderW2(b.dataset.k);}));
+renderW2('prompt');
+
+/* ===== W3: partial ===== */
+const w3fixed=new Set();
+const w3all=['brand','product'];
+const w3val={brand:'리리마켓',product:'캐시미어 머플러'};
+function renderW3(){
+  document.querySelectorAll('#w3vars .pt-chip').forEach(c=>{
+    c.classList.toggle('fixed',w3fixed.has(c.dataset.v));
+  });
+  document.getElementById('w3fixed').textContent =
+    w3fixed.size? [...w3fixed].map(v=>`${v}="${w3val[v]}"`).join(', ') : '없음';
+  const remain=w3all.filter(v=>!w3fixed.has(v));
+  document.getElementById('w3remain').textContent='['+remain.map(v=>`'${v}'`).join(', ')+']';
+  const hint=document.getElementById('w3hint');
+  if(remain.length===0) hint.textContent='✅ 모든 변수가 고정됨 → .invoke({}) 빈 딕셔너리로도 호출 가능';
+  else hint.textContent=`→ 호출 시 ${remain.map(v=>`"${v}"`).join(', ')} 만 채우면 됨`;
+}
+document.querySelectorAll('#w3vars .pt-chip').forEach(c=>c.addEventListener('click',()=>{
+  const v=c.dataset.v; if(w3fixed.has(v))w3fixed.delete(v); else w3fixed.add(v); renderW3();}));
+renderW3();
+
+/* ===== W4: few-shot ===== */
+const w4examples=[
+  {on:true,product:'베이지 니트',copy:'포근함을 입다.'},
+  {on:true,product:'린넨 셔츠',copy:'여름을 가볍게.'},
+  {on:false,product:'가죽 부츠',copy:'걸음마다 깊어지는 멋.'},
+];
+function renderW4(){
+  document.getElementById('w4exs').innerHTML=w4examples.map((e,i)=>
+    `<div class="fs-ex ${e.on?'':'off'}">
+      <span>상품: ${e.product} → 문구: ${e.copy}</span>
+      <span class="tog" data-i="${i}">${e.on?'끄기':'켜기'}</span></div>`).join('');
+  document.querySelectorAll('#w4exs .tog').forEach(t=>t.addEventListener('click',()=>{
+    w4examples[+t.dataset.i].on=!w4examples[+t.dataset.i].on;renderW4();}));
+  const on=w4examples.filter(e=>e.on);
+  let txt=on.map(e=>`상품: ${e.product}\n문구: ${e.copy}`).join('\n\n');
+  txt+=(on.length?'\n\n':'')+'상품: 울 코트\n문구:';
+  document.getElementById('w4prompt').innerHTML=
+    txt.replace('상품: 울 코트\n문구:','<span class="suf">상품: 울 코트\n문구:</span>');
+  const q=document.getElementById('w4qual');
+  if(on.length===0){q.textContent='⚠️ zero-shot — 형식이 들쭉날쭉해질 수 있음';q.style.background='#f3ddd2';q.style.color='#9a3a14';}
+  else if(on.length===1){q.textContent='🙂 1-shot — 형식 감은 잡히지만 불안정';q.style.background='#ece3d2';q.style.color='#7a5a2a';}
+  else{q.textContent=`✅ ${on.length}-shot — 짧고 감성적인 형식을 안정적으로 따름`;q.style.background='#d8e8e3';q.style.color='#225349';}
+}
+renderW4();
+
+/* ===== W5: error catcher ===== */
+const w5need=new Set(['brand','product','tone']);
+const w5sel=new Set();
+function renderW5(){
+  document.querySelectorAll('#w5keys .ec-key').forEach(k=>k.classList.toggle('on',w5sel.has(k.dataset.k)));
+  const res=document.getElementById('w5res');
+  const missing=[...w5need].filter(k=>!w5sel.has(k));
+  const extra=[...w5sel].filter(k=>!w5need.has(k));
+  if(w5sel.size===0){res.className='ec-result';res.style.background='#fdfaf4';res.style.color='var(--sub)';res.textContent='채울 키를 골라 보세요.';return;}
+  if(missing.length){res.className='ec-result err';res.textContent=`KeyError: 변수 '${missing[0]}' 누락 — input_variables를 다 못 채움`;}
+  else if(extra.length){res.className='ec-result ok';res.innerHTML=`✅ 호출 성공 (단, '${extra[0]}'는 템플릿에 없는 키라 무시됨)`;}
+  else{res.className='ec-result ok';res.textContent='✅ 호출 성공! 모든 빈칸이 정확히 채워짐';}
+}
+document.querySelectorAll('#w5keys .ec-key').forEach(k=>k.addEventListener('click',()=>{
+  const v=k.dataset.k; if(w5sel.has(v))w5sel.delete(v); else w5sel.add(v); renderW5();}));
+renderW5();
+</script>
+</body>
+</html>

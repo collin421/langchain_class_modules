@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Part 9 · create_agent로 진짜 에이전트 만들기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Gowun+Dodum&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f4efe6;--card:#fbf8f2;--ink:#2b2723;--sub:#6f6457;--accent:#c2410c;
+    --accent-soft:#e9d5c4;--line:#e2d9c9;--teal:#2f6b5e;--gold:#a8762f;
+    --serif:'Gowun Batang',serif;--sans:'Gowun Dodum',sans-serif;--maxw:760px;color-scheme:light only;
+  }
+  @media (prefers-color-scheme:dark){:root{--bg:#f4efe6;--card:#fbf8f2;--ink:#2b2723;}}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.85;font-size:17px;-webkit-text-size-adjust:100%;
+    background-image:radial-gradient(circle at 20% 0%,rgba(194,65,12,.04),transparent 40%),radial-gradient(circle at 90% 100%,rgba(47,107,94,.04),transparent 45%);}
+  #progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--accent);z-index:100;transition:width .1s linear;}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 22px;}
+  header.hero{max-width:var(--maxw);margin:0 auto;padding:88px 22px 40px;}
+  .eyebrow{color:var(--accent);font-size:13px;letter-spacing:.22em;font-weight:700;text-transform:uppercase;}
+  h1{font-family:var(--serif);font-weight:700;font-size:clamp(30px,6vw,46px);line-height:1.25;margin:14px 0 18px;letter-spacing:-.01em;}
+  .lead{font-size:18px;color:var(--sub);max-width:62ch;}
+  .hero-meta{margin-top:26px;display:flex;gap:10px;flex-wrap:wrap;}
+  .chip{font-size:12.5px;font-weight:700;letter-spacing:.04em;padding:6px 13px;border-radius:999px;background:var(--accent-soft);color:#8a3408;}
+  .chip.t{background:#d8e8e3;color:#225349;}
+  section{padding:54px 0 30px;border-top:1px solid var(--line);}
+  section:first-of-type{border-top:none;}
+  .sec-no{font-family:var(--serif);font-size:14px;color:var(--accent);font-weight:700;letter-spacing:.1em;}
+  h2{font-family:var(--serif);font-weight:700;font-size:clamp(23px,4.4vw,31px);margin:6px 0 20px;line-height:1.3;}
+  p{margin:0 0 16px;}
+  .sub{color:var(--sub);}
+  strong{color:var(--accent);font-weight:700;}
+  code{font-family:'Gowun Dodum',monospace;background:#efe7d8;color:#8a3408;padding:1.5px 7px;border-radius:6px;font-size:.92em;}
+  pre{background:#2b2723;color:#f4efe6;border-radius:12px;padding:16px 18px;overflow-x:auto;font-size:14px;line-height:1.7;margin:16px 0;}
+  pre code{background:none;color:inherit;padding:0;}
+  pre .k{color:#e0935f;}pre .s{color:#9ec79a;}pre .c{color:#8b8175;font-style:italic;}
+  .note{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px;padding:14px 18px;margin:18px 0;font-size:15.5px;color:var(--sub);}
+  .note b{color:var(--accent);}
+  .summary{background:#efe7d8;border-radius:12px;padding:18px 20px;margin:22px 0 4px;}
+  .summary .h{font-family:var(--serif);font-weight:700;color:var(--accent);font-size:15px;letter-spacing:.05em;margin-bottom:8px;}
+  .summary ol{margin:0;padding-left:20px;}.summary li{margin:5px 0;font-size:15.5px;}
+  .widget{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;margin:26px 0;box-shadow:0 6px 22px rgba(80,60,30,.06);}
+  .widget .wlabel{display:inline-block;font-size:11.5px;font-weight:700;letter-spacing:.14em;color:#fff;background:var(--accent);padding:4px 11px;border-radius:999px;margin-bottom:16px;}
+  .wdesc{font-size:14.5px;margin-bottom:14px;color:var(--sub);}
+  .btn{border:none;background:var(--accent);color:#fff;font-family:var(--sans);font-weight:700;font-size:13.5px;padding:9px 18px;border-radius:9px;cursor:pointer;}
+  .btn.ghost{background:#fdfaf4;border:1px solid var(--line);color:var(--sub);}
+
+  /* W1: agent anatomy */
+  .anat{display:flex;flex-direction:column;gap:10px;}
+  .anat-row{display:flex;align-items:center;gap:12px;background:#fff;border:1.5px solid var(--line);border-radius:11px;padding:13px 15px;cursor:pointer;transition:.2s;}
+  .anat-row:hover{border-color:var(--accent-soft);}
+  .anat-row.on{border-color:var(--accent);background:#fdfaf4;}
+  .anat-row .ic{flex:none;width:34px;height:34px;border-radius:9px;display:grid;place-items:center;font-size:17px;background:var(--accent-soft);}
+  .anat-row .nm{font-family:monospace;font-weight:700;font-size:13px;}
+  .anat-row .role{font-size:12px;color:var(--sub);}
+  .anat-detail{background:#efe7d8;border-radius:10px;padding:13px 15px;font-size:13.5px;margin-top:4px;}
+
+  /* W2: tool belt routing */
+  .tb-chat{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:12px;min-height:54px;font-size:13.5px;}
+  .tb-belt{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px;}
+  .tb-tool{flex:1;min-width:84px;border:1.5px solid var(--line);border-radius:10px;padding:9px;text-align:center;background:#fdfaf4;font-size:11px;transition:.3s;}
+  .tb-tool.picked{border-color:var(--teal);background:#d8e8e3;box-shadow:0 4px 12px rgba(47,107,94,.18);transform:translateY(-2px);}
+  .tb-tool .tn{font-family:monospace;font-weight:700;font-size:11px;}
+  .tb-tool .te{font-size:15px;}
+  .tb-qs{display:flex;flex-wrap:wrap;gap:6px;}
+  .tbq{border:1.5px solid var(--line);background:#fff;border-radius:999px;padding:7px 12px;font-size:12px;cursor:pointer;font-family:var(--sans);transition:.15s;}
+  .tbq.on{border-color:var(--accent);background:var(--accent);color:#fff;}
+
+  /* W3: RAG as tool */
+  .rt-desk{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;}
+  .rt-q{text-align:center;margin-bottom:12px;}
+  .rt-q .pill{display:inline-block;background:var(--ink);color:#fff;padding:6px 14px;border-radius:999px;font-size:12.5px;}
+  .rt-tools{display:flex;gap:10px;justify-content:center;margin-bottom:12px;}
+  .rt-tool{border:1.5px solid var(--line);border-radius:10px;padding:12px 16px;text-align:center;background:#fdfaf4;transition:.3s;font-size:12px;}
+  .rt-tool.open{border-color:var(--teal);background:#d8e8e3;}
+  .rt-tool .ti{font-size:22px;}
+  .rt-out{background:#eef5f3;border-radius:9px;padding:11px 13px;font-size:13px;min-height:24px;}
+  .rt-toggle{display:flex;gap:8px;margin-bottom:12px;}
+  .rtbtn{flex:1;border:1.5px solid var(--line);background:#fff;border-radius:9px;padding:9px;cursor:pointer;font-family:var(--sans);font-weight:700;font-size:12.5px;color:var(--sub);transition:.15s;}
+  .rtbtn.on{border-color:var(--accent);background:var(--accent);color:#fff;}
+
+  /* W4: system prompt */
+  .sp-edit{display:flex;flex-direction:column;gap:7px;margin-bottom:12px;}
+  .sp-rule{display:flex;align-items:center;gap:10px;background:#fff;border:1.5px solid var(--line);border-radius:9px;padding:9px 12px;font-size:12.5px;cursor:pointer;transition:.2s;}
+  .sp-rule .chk{flex:none;width:18px;height:18px;border-radius:5px;border:2px solid var(--line);display:grid;place-items:center;font-size:11px;color:#fff;}
+  .sp-rule.on{border-color:var(--teal);background:#eef5f3;}
+  .sp-rule.on .chk{background:var(--teal);border-color:var(--teal);}
+  .sp-result{background:#fff;border:1px solid var(--line);border-radius:9px;padding:12px 14px;font-size:13px;}
+  .sp-result .behav{margin-top:6px;font-size:12.5px;}
+
+  /* W5: multi-tool loop */
+  .ml-msgs{display:flex;flex-direction:column;gap:7px;min-height:150px;}
+  .mlmsg{border-radius:9px;padding:9px 12px;font-size:12.5px;opacity:0;transform:translateY(6px);transition:.4s;border-left:4px solid var(--line);}
+  .mlmsg.show{opacity:1;transform:none;}
+  .mlmsg.human{background:var(--accent-soft);border-left-color:var(--accent);}
+  .mlmsg.act{background:#fbf3e6;border-left-color:var(--gold);}
+  .mlmsg.obs{background:#d8e8e3;border-left-color:var(--teal);}
+  .mlmsg.final{background:#eef5f3;border-left-color:var(--teal);font-weight:700;}
+  .mlmsg .tag{font-size:10px;font-weight:700;display:block;margin-bottom:2px;opacity:.7;}
+  .ml-ctl{margin-top:12px;display:flex;gap:8px;align-items:center;}
+  .ml-count{font-size:12px;color:var(--sub);margin-left:auto;}
+
+  footer{max-width:var(--maxw);margin:0 auto;padding:30px 22px 80px;color:var(--sub);font-size:14px;border-top:1px solid var(--line);}
+  .next-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin:20px 0 0;}
+  .next-card .nl{font-size:12px;letter-spacing:.14em;color:var(--accent);font-weight:700;}
+  .next-card .nt{font-family:var(--serif);font-weight:700;font-size:18px;margin-top:4px;}
+  .reveal{opacity:0;transform:translateY(18px);transition:opacity .6s ease,transform .6s ease;}
+  .reveal.in{opacity:1;transform:none;}
+  @media(max-width:480px){body{font-size:16px;}.tb-belt{flex-direction:column;}.rt-tools{flex-direction:column;}}
+</style>
+</head>
+<body>
+<div id="progress"></div>
+
+<header class="hero">
+  <div class="eyebrow">LangChain 에이전트 마스터 · Part 9 · 중급 정점</div>
+  <h1>create_agent로<br>진짜 에이전트 만들기</h1>
+  <p class="lead">따로 배운 도구(7)와 RAG(8)를 하나로 합침. <code>create_agent</code>로 도구·RAG·시스템 프롬프트를 결합해, LangGraph 런타임 위에서 스스로 도구 호출 루프를 돌며 일하는 에이전트를 완성함.</p>
+  <div class="hero-meta">
+    <span class="chip">🟡 중급 · 9/18</span>
+    <span class="chip t">create_agent</span>
+    <span class="chip t">예상 45분</span>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- Section 1: anatomy -->
+  <section class="reveal">
+    <div class="sec-no">9-1</div>
+    <h2>create_agent — 세 가지 재료</h2>
+    <p>1.0 에이전트의 정식 생성은 <code>create_agent(model, tools, system_prompt)</code>임. 신입에게 업무 환경을 세팅하듯, 역할(프롬프트)·장비(도구)·두뇌(모델)를 쥐여주면 스스로 일함. 내부는 LangGraph가 도구 호출 루프를 돌림.</p>
+    <pre><code><span class="k">from</span> langchain.agents <span class="k">import</span> create_agent
+
+agent = create_agent(
+    model=model,
+    tools=[get_stock, search_policy],
+    system_prompt=<span class="s">"너는 리리마켓 상담원이야."</span>,
+)</code></pre>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 세 재료의 역할</span>
+      <p class="wdesc">각 재료를 눌러 무슨 역할인지 확인함.</p>
+      <div class="anat">
+        <div class="anat-row on" data-k="model"><div class="ic">🧠</div><div><div class="nm">model</div><div class="role">두뇌 — 판단하고 답을 생성</div></div></div>
+        <div class="anat-row" data-k="tools"><div class="ic">🔧</div><div><div class="nm">tools</div><div class="role">손발 — 검색·계산·조회 등 행동</div></div></div>
+        <div class="anat-row" data-k="sp"><div class="ic">📋</div><div><div class="nm">system_prompt</div><div class="role">지침서 — 역할·규칙·도구 가이드</div></div></div>
+      </div>
+      <div class="anat-detail" id="w1detail"></div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;내부 루프: agent 노드가 모델을 부르고 → 응답에 <code>tool_calls</code>가 있으면 tools 노드가 실행해 <code>ToolMessage</code>로 추가 → 다시 모델 호출. <b>tool_calls가 없을 때까지 반복</b> 후 전체 messages 반환. 우리가 루프를 코딩하지 않음.</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li><code>create_agent(model, tools, system_prompt)</code>가 정식 생성임.</li>
+      <li>내부는 LangGraph가 "모델→도구→다시 모델"을 자동 반복함.</li>
+      <li>tool_calls가 없어질 때까지 돌고 전체 messages를 반환함.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 2: tool belt -->
+  <section class="reveal">
+    <div class="sec-no">9-2</div>
+    <h2>도구 조합이 곧 능력</h2>
+    <p>에이전트의 능력은 쥐여준 도구 조합으로 정해짐 — 공구 벨트에 채운 연장들과 같음. 같은 에이전트가 질문 성격에 따라 다른 도구를 고름.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 질문 → 도구 라우팅</span>
+      <p class="wdesc">질문을 눌러, 4개 도구 중 에이전트가 무엇을 고르는지 봄.</p>
+      <div class="tb-chat" id="w2chat"></div>
+      <div class="tb-belt" id="w2belt">
+        <div class="tb-tool" data-k="stock"><div class="te">📦</div><div class="tn">get_stock</div></div>
+        <div class="tb-tool" data-k="rate"><div class="te">💱</div><div class="tn">get_exchange_rate</div></div>
+        <div class="tb-tool" data-k="track"><div class="te">🚚</div><div class="tn">track_delivery</div></div>
+        <div class="tb-tool" data-k="policy"><div class="te">📕</div><div class="tn">search_policy</div></div>
+      </div>
+      <div class="tb-qs" id="w2qs">
+        <button class="tbq on" data-k="stock">트렌치 코트 재고 있어요?</button>
+        <button class="tbq" data-k="rate">50달러 원화로 얼마?</button>
+        <button class="tbq" data-k="track">주문 A123 어디쯤?</button>
+        <button class="tbq" data-k="policy">반품 며칠 안에?</button>
+      </div>
+    </div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>에이전트 능력은 쥐여준 도구 조합으로 정해짐.</li>
+      <li>같은 에이전트가 질문에 따라 다른 도구를 고름.</li>
+      <li>도구는 꼭 필요한 것을 명확한 설명과 함께(Part 7).</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 3: RAG as tool -->
+  <section class="reveal">
+    <div class="sec-no">9-3</div>
+    <h2>RAG를 도구로 — 필요할 때만 검색</h2>
+    <p>Part 8의 RAG 체인을 <code>@tool</code>로 감싸면 "필요할 때만 문서를 찾는" 도구가 됨. 상담원 책상에 규정집을 놓아둔 것 — <strong>언제 펼지는 에이전트의 판단</strong>임.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 규정집을 언제 펼까</span>
+      <p class="wdesc">질문 종류를 바꿔, 에이전트가 RAG 도구(규정집)를 펼치는지 일반 도구를 쓰는지 봄.</p>
+      <div class="rt-toggle" id="w3tog">
+        <button class="rtbtn on" data-k="policy">정책 질문: "반품 며칠?"</button>
+        <button class="rtbtn" data-k="stock">재고 질문: "니트 있어요?"</button>
+      </div>
+      <div class="rt-desk">
+        <div class="rt-tools" id="w3tools">
+          <div class="rt-tool" data-k="stock"><div class="ti">📦</div>get_stock<br>(재고)</div>
+          <div class="rt-tool" data-k="policy"><div class="ti">📕</div>search_policy<br>(규정집·RAG)</div>
+        </div>
+        <div class="rt-out" id="w3out"></div>
+      </div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;체인(항상 검색)을 도구로 감싸면 "검색할지 말지"의 동적 판단이 에이전트의 몫이 됨 — Part 6의 "체인을 에이전트의 도구로 쓴다"가 실현됨. 체인의 안정성 + 에이전트의 유연함을 계층적으로 조합하는 핵심 패턴임.</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>RAG 체인을 <code>@tool</code>로 감싸면 "필요할 때만 검색"하는 도구가 됨.</li>
+      <li>검색 여부의 판단이 에이전트의 몫이 됨.</li>
+      <li>체인의 안정성 + 에이전트의 유연함을 계층 조합함.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 4: system prompt -->
+  <section class="reveal">
+    <div class="sec-no">9-4</div>
+    <h2>system_prompt — 행동 지침서</h2>
+    <p><code>system_prompt</code>는 에이전트의 역할·규칙·도구 사용 가이드를 정함 — 신입 상담원에게 주는 근무 지침서임. 매 모델 호출 맨 앞에 붙어 모든 판단의 기준이 됨.</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · 지침을 켜고 끄며 행동 보기</span>
+      <p class="wdesc">규칙을 켜고 끄면, 그에 따라 에이전트의 행동이 어떻게 달라지는지 봄.</p>
+      <div class="sp-edit" id="w4rules">
+        <div class="sp-rule on" data-k="tone"><div class="chk">✓</div><span>친절하고 간결한 말투로 응대한다</span></div>
+        <div class="sp-rule on" data-k="ragguide"><div class="chk">✓</div><span>정책 질문은 반드시 search_policy 도구로 확인한다</span></div>
+        <div class="sp-rule on" data-k="nohall"><div class="chk">✓</div><span>모르면 추측하지 말고 "확인이 어렵다"고 안내한다</span></div>
+      </div>
+      <div class="sp-result" id="w4result"></div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;str 또는 SystemMessage로 줌. docstring(도구 쪽 설명)과 system_prompt(에이전트 쪽 지침)가 함께 작동해 도구 선택을 좌우함. 결제·삭제 같은 위험 행동의 안전 규칙도 여기 명시함(Part 14 연결).</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li><code>system_prompt</code>는 역할·규칙·도구 가이드를 정함.</li>
+      <li>매 모델 호출 맨 앞에 붙어 모든 판단의 기준이 됨.</li>
+      <li>docstring과 system_prompt가 함께 도구 선택을 좌우함.</li>
+    </ol></div>
+  </section>
+
+  <!-- Section 5: multi-tool loop -->
+  <section class="reveal">
+    <div class="sec-no">9-5</div>
+    <h2>복합 질문 — 여러 도구를 순차로</h2>
+    <p>한 질문에 여러 정보가 필요하면, 에이전트가 루프를 돌며 도구를 여러 번 호출함. 실행 후 <strong>messages를 펼쳐 보면</strong> 그 흐름이 다 드러남(기본 디버깅).</p>
+
+    <div class="widget">
+      <span class="wlabel">인터랙티브 · messages 추적</span>
+      <p class="wdesc">"트렌치 코트 재고 확인하고, 반품 기간도 알려줘" — 두 도구가 순차로 불리는 과정을 단계별로 따라감.</p>
+      <div class="ml-msgs" id="w5msgs"></div>
+      <div class="ml-ctl">
+        <button class="btn" id="w5step">▶ 다음 단계</button>
+        <button class="btn ghost" id="w5reset">↻</button>
+        <span class="ml-count" id="w5count"></span>
+      </div>
+    </div>
+
+    <div class="note"><b>📌 참고</b> &nbsp;입력 형식은 <code>{"messages": [("user","...")]}</code>. 결과는 전체 messages 리스트이며, 최종 답은 마지막 메시지임. 본격 관측·추적은 고급의 LangSmith(Part 16)에서 다룸.</div>
+
+    <div class="summary"><div class="h">3줄 요약</div><ol>
+      <li>복합 질문이면 루프를 돌며 도구를 여러 번 순차 호출함.</li>
+      <li><code>messages</code>를 펼치면 도구 호출 흐름이 다 보임.</li>
+      <li>이 추적이 에이전트 기본 디버깅 도구임.</li>
+    </ol></div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="next-card">
+    <div class="nl">NEXT · PART 10</div>
+    <div class="nt">메모리와 상태</div>
+    <p style="margin-top:8px;">지금 에이전트는 대화를 기억 못 함 — "아까 그 상품"을 못 이어감. 메모리와 상태를 더해 멀티턴 대화를 기억하게 만들고, 그 기억을 LangGraph 런타임이 어떻게 관리하는지 — 고급으로 가는 다리를 놓음.</p>
+  </div>
+  <p style="margin-top:24px;">LangChain 에이전트 마스터 커리큘럼 · Part 9 / 18 · LangChain 1.0 기준</p>
+</footer>
+
+<script>
+const prog=document.getElementById('progress');
+addEventListener('scroll',()=>{const h=document.documentElement;prog.style.width=((h.scrollTop)/(h.scrollHeight-h.clientHeight)*100)+'%';});
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('in');}),{threshold:.12});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+
+/* ===== W1: anatomy ===== */
+const w1={
+  model:'<b>model (두뇌)</b> — ChatGoogleGenerativeAI 같은 모델. 도구를 고르고 답을 생성하는 판단의 주체임. 문자열 식별자("google_genai:gemini-3-flash")로도 줄 수 있음.',
+  tools:'<b>tools (손발)</b> — @tool로 만든 도구 리스트. 검색·계산·조회 등 실제 행동을 담당함. 빈 리스트면 도구 없이 모델만 도는 체인 같은 에이전트가 됨.',
+  sp:'<b>system_prompt (지침서)</b> — 역할·말투·규칙·도구 사용 가이드. 매 모델 호출 맨 앞에 SystemMessage로 붙어 모든 판단의 기준이 됨.'
+};
+function renderW1(k){document.getElementById('w1detail').innerHTML=w1[k];}
+document.querySelectorAll('.anat-row').forEach(r=>r.addEventListener('click',()=>{
+  document.querySelectorAll('.anat-row').forEach(x=>x.classList.remove('on'));r.classList.add('on');renderW1(r.dataset.k);}));
+renderW1('model');
+
+/* ===== W2: tool belt ===== */
+const w2={
+  stock:{q:'트렌치 코트 재고 있어요?',pick:'stock',ans:'🔧 get_stock("트렌치 코트") → "재고: 0" → "현재 품절입니다 😢"'},
+  rate:{q:'50달러 원화로 얼마?',pick:'rate',ans:'🔧 get_exchange_rate("USD") → "1 USD=1380원" → "약 69,000원입니다"'},
+  track:{q:'주문 A123 어디쯤?',pick:'track',ans:'🔧 track_delivery("A123") → "배송 중(수도권)" → "수도권 배송 중이에요!"'},
+  policy:{q:'반품 며칠 안에?',pick:'policy',ans:'🔧 search_policy("반품 기간") → RAG 검색 → "수령 후 7일 이내 가능합니다"'}
+};
+function renderW2(k){
+  const d=w2[k];
+  document.getElementById('w2chat').innerHTML=`<b>🙋 "${d.q}"</b><br><span style="color:var(--sub);font-size:12.5px">${d.ans}</span>`;
+  document.querySelectorAll('#w2belt .tb-tool').forEach(t=>t.classList.toggle('picked',t.dataset.k===d.pick));
+}
+document.querySelectorAll('#w2qs .tbq').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('#w2qs .tbq').forEach(x=>x.classList.remove('on'));b.classList.add('on');renderW2(b.dataset.k);}));
+renderW2('stock');
+
+/* ===== W3: RAG as tool ===== */
+const w3={
+  policy:{open:'policy',out:'📕 규정집(search_policy)을 펼침 → "수령 후 7일 이내 반품 가능합니다" (문서 근거로 답)'},
+  stock:{open:'stock',out:'📦 get_stock 사용 → 규정집은 펴지 않음. 재고 질문엔 RAG가 불필요하다고 판단함'}
+};
+function renderW3(k){
+  const d=w3[k];
+  document.querySelectorAll('#w3tools .rt-tool').forEach(t=>t.classList.toggle('open',t.dataset.k===d.open));
+  document.getElementById('w3out').textContent=d.out;
+}
+document.querySelectorAll('#w3tog .rtbtn').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('#w3tog .rtbtn').forEach(x=>x.classList.remove('on'));b.classList.add('on');renderW3(b.dataset.k);}));
+renderW3('policy');
+
+/* ===== W4: system prompt ===== */
+const w4state={tone:true,ragguide:true,nohall:true};
+function renderW4(){
+  document.querySelectorAll('#w4rules .sp-rule').forEach(r=>{
+    const on=w4state[r.dataset.k];r.classList.toggle('on',on);r.querySelector('.chk').textContent=on?'✓':'';
+  });
+  const q='"반품 며칠 안에 해야 하나요?"';
+  let behav=[];
+  behav.push(w4state.ragguide?'✅ search_policy 도구로 정확히 확인함':'⚠️ 도구 없이 추측해 답할 수 있음(부정확 위험)');
+  behav.push(w4state.tone?'✅ "7일 이내에 가능하세요 😊" (친절·간결)':'➖ 딱딱하거나 장황할 수 있음');
+  if(!w4state.nohall) behav.push('⚠️ 모르는 건 지어낼 위험');
+  else behav.push('✅ 모르면 "확인이 어렵다"고 안내');
+  document.getElementById('w4result').innerHTML=
+    `<b>질문:</b> ${q}<div class="behav">${behav.map(b=>'• '+b).join('<br>')}</div>`;
+}
+document.querySelectorAll('#w4rules .sp-rule').forEach(r=>r.addEventListener('click',()=>{
+  w4state[r.dataset.k]=!w4state[r.dataset.k];renderW4();}));
+renderW4();
+
+/* ===== W5: multi-tool loop ===== */
+const w5seq=[
+  {cls:'human',tag:'HumanMessage',txt:'트렌치 코트 재고 확인하고, 반품 기간도 알려줘'},
+  {cls:'act',tag:'AIMessage · 행동 ①',txt:'🔧 get_stock("트렌치 코트") 호출'},
+  {cls:'obs',tag:'ToolMessage · 관찰 ①',txt:'👁 "재고: 0"'},
+  {cls:'act',tag:'AIMessage · 행동 ②',txt:'🔧 search_policy("반품 기간") 호출 (아직 답이 부족하다고 판단)'},
+  {cls:'obs',tag:'ToolMessage · 관찰 ②',txt:'👁 "수령 후 7일 이내 반품 가능"'},
+  {cls:'final',tag:'AIMessage · 최종',txt:'트렌치 코트는 현재 품절이에요. 반품은 수령 후 7일 이내에 가능합니다 😊'},
+];
+let w5i=0;
+function renderW5(){
+  document.getElementById('w5msgs').innerHTML=w5seq.map((s,idx)=>
+    `<div class="mlmsg ${s.cls} ${idx<w5i?'show':''}"><span class="tag">${s.tag}</span>${s.txt}</div>`).join('');
+  const calls=[...Array(Math.min(w5i,w5seq.length))].filter((_,i)=>['act','final'].includes(w5seq[i].cls)).length;
+  document.getElementById('w5count').textContent=`단계 ${Math.min(w5i,w5seq.length)}/${w5seq.length} · 모델 호출 ${calls}회 · 도구 2회`;
+  document.getElementById('w5step').disabled=w5i>=w5seq.length;
+  document.getElementById('w5step').textContent=w5i>=w5seq.length?'✅ 완료':'▶ 다음 단계';
+}
+document.getElementById('w5step').addEventListener('click',()=>{if(w5i<w5seq.length){w5i++;renderW5();}});
+document.getElementById('w5reset').addEventListener('click',()=>{w5i=0;renderW5();});
+renderW5();
+</script>
+</body>
+</html>
